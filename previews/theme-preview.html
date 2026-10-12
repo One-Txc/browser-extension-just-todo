@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="eyecare">
+<head>
+<meta charset="UTF-8">
+<title>Todo Just 主题预览</title>
+<style>
+/* ============================================================
+   1) reset / base
+   ============================================================ */
+* { box-sizing: border-box; margin: 0; padding: 0 }
+/*
+ * 任务行的内容高度：由操作按钮（.op）决定。行内编辑输入框比它高 --input-lift，
+ * 再用负外边距把多出来的部分抵消掉，所以进入/退出编辑时行高一点都不会变。
+ */
+:root { --row-content-h: 28px; --input-lift: 10px }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--body-glow), var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 15px;
+}
+.app { max-width: 880px; margin: 0 auto; padding: 44px 24px 80px }
+
+/* ============================================================
+   2) 主题变量：soft / minimal / dark / eyecare（四套，各自定义同一组变量）
+   ============================================================ */
+:root[data-theme="soft"] {
+  --bg: #f4f6fc;
+  --card: #ffffff;
+  --ink: #2b2f3c;
+  --ink-2: #6b7280;
+  --ink-3: #9aa1b0;
+  --line: #eceef4;
+  --line-2: #f0f1f4;
+  --primary: #5b7cfa;
+  --primary-soft: #eef1ff;
+  --danger: #f06a6a;
+  --radius: 18px;
+  --shadow: 0 8px 30px rgba(60, 80, 160, .10);
+  --card-border: 1px solid transparent;
+  --primary-grad: linear-gradient(135deg, #6d8bff, #8a6df5);
+  --on-primary: #ffffff;
+  --check-done-bg: var(--primary-grad);
+  --hover-bg: #f7f8fd;
+  --input-bg: #ffffff;
+  --tab-radius: 999px;
+  --tab-bg: #f3f4f9;
+  --tab-hover-bg: #e9edf8;
+  --tab-active-bg: var(--primary-grad);
+  --tab-active-fg: #ffffff;
+  --tab-active-shadow: 0 5px 14px rgba(107, 124, 250, .35);
+  --tab-active-border: transparent;
+  --tab-padding: 7px 14px;
+  --badge-bg: rgba(0, 0, 0, .07);
+  --badge-active-bg: rgba(255, 255, 255, .25);
+  --tag-fg: var(--primary);
+  --tag-bg: var(--primary-soft);
+  --tag-none-fg: var(--ink-3);
+  --tag-none-bg: #f3f4f9;
+  --archive-card-bg: #fbfaf6;
+  --archive-border: #efe9db;
+  --archive-dot: #d8c9a3;
+  --body-glow: radial-gradient(900px 380px at 85% -8%, #e7ecff 0%, rgba(231, 236, 255, 0) 60%);
+  --mask-bg: rgba(35, 42, 70, .35);
+  --btn-ghost-bg: #f3f4f9;
+  --btn-ghost-fg: var(--ink-2);
+  --surface: #ffffff;
+  --border-strong: #d6deff;
+  --dashed: #c3cbe2;
+  --check-border: #c8cfe4;
+  --op-hover-bg: #eef1fb;
+  --danger-soft-bg: #fdeeee;
+  --archive-all-hover-bg: #e0e6ff;
+  --switch-off-bg: #d6dbe8;
+  --switch-knob: #ffffff;
+  --switch-knob-shadow: 0 2px 5px rgba(0, 0, 0, .2);
+  --subtle-bg: #f7f8fd;
+  --a-item-hover-bg: rgba(255, 255, 255, .8);
+  --logo-shadow: 0 6px 16px rgba(107, 124, 250, .4);
+  --icon-hover-shadow: 0 4px 12px rgba(91, 124, 250, .15);
+  --btn-shadow: 0 6px 16px rgba(107, 124, 250, .35);
+  --modal-shadow: 0 24px 70px rgba(40, 50, 100, .25);
+  --focus-ring: #d6deff;
+}
+
+:root[data-theme="minimal"] {
+  --bg: #fcfcfd;
+  --card: #ffffff;
+  --ink: #15181e;
+  --ink-2: #5c6370;
+  --ink-3: #9aa0ab;
+  --line: #e8eaee;
+  --line-2: #f0f1f4;
+  --primary: #4f46e5;
+  --primary-soft: #eef0fd;
+  --danger: #dc2626;
+  --radius: 8px;
+  --shadow: none;
+  --card-border: 1px solid var(--line);
+  --primary-grad: #4f46e5;
+  --on-primary: #ffffff;
+  --check-done-bg: var(--ink-2);
+  --hover-bg: #f7f8fa;
+  --input-bg: #f7f8fa;
+  --tab-radius: 0;
+  --tab-bg: transparent;
+  --tab-hover-bg: transparent;
+  --tab-active-bg: transparent;
+  --tab-active-fg: var(--ink);
+  --tab-active-shadow: inset 0 -2px 0 var(--ink);
+  --tab-active-border: transparent;
+  --tab-padding: 14px 12px 12px;
+  --badge-bg: #f1f2f5;
+  --badge-active-bg: var(--primary-soft);
+  --tag-fg: var(--ink-2);
+  --tag-bg: #f3f4f6;
+  --tag-none-fg: var(--ink-3);
+  --tag-none-bg: #f3f4f6;
+  --archive-card-bg: #ffffff;
+  --archive-border: var(--line);
+  --archive-dot: #c9ced8;
+  --body-glow: none;
+  --mask-bg: rgba(15, 18, 25, .4);
+  --btn-ghost-bg: #f2f3f6;
+  --btn-ghost-fg: var(--ink-2);
+  --surface: #ffffff;
+  --border-strong: #c7cbd4;
+  --dashed: #cbd0d8;
+  --check-border: #c3c8d2;
+  --op-hover-bg: #eceef3;
+  --danger-soft-bg: #fbeaea;
+  --archive-all-hover-bg: var(--primary-soft);
+  --switch-off-bg: #d0d4dc;
+  --switch-knob: #ffffff;
+  --switch-knob-shadow: 0 2px 5px rgba(0, 0, 0, .2);
+  --subtle-bg: #f5f6f8;
+  --a-item-hover-bg: #f5f6f8;
+  --logo-shadow: 0 3px 10px rgba(0, 0, 0, .08);
+  --icon-hover-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+  --btn-shadow: none;
+  --modal-shadow: 0 24px 60px rgba(0, 0, 0, .15);
+  --focus-ring: #c7cbd4;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #131519;
+  --card: #1c1f26;
+  --ink: #e7eaf0;
+  --ink-2: #949aa7;
+  --ink-3: #5f6571;
+  --line: #2a2e39;
+  --line-2: #23262f;
+  --primary: #4ade80;
+  --primary-soft: rgba(74, 222, 128, .12);
+  --danger: #f87171;
+  --radius: 14px;
+  --shadow: 0 12px 40px rgba(0, 0, 0, .45);
+  --card-border: 1px solid var(--line);
+  --primary-grad: linear-gradient(135deg, #4ade80, #22b8a6);
+  --on-primary: #0c130d;
+  --check-done-bg: var(--primary);
+  --hover-bg: #22252e;
+  --input-bg: #262a33;
+  --tab-radius: 9px;
+  --tab-bg: transparent;
+  --tab-hover-bg: #23262f;
+  --tab-active-bg: var(--primary-soft);
+  --tab-active-fg: var(--primary);
+  --tab-active-shadow: none;
+  --tab-active-border: rgba(74, 222, 128, .28);
+  --tab-padding: 6.5px 13px;
+  --badge-bg: rgba(255, 255, 255, .08);
+  --badge-active-bg: rgba(74, 222, 128, .2);
+  --tag-fg: #7c9cf7;
+  --tag-bg: rgba(124, 156, 247, .12);
+  --tag-none-fg: var(--ink-3);
+  --tag-none-bg: rgba(255, 255, 255, .05);
+  --archive-card-bg: #191c22;
+  --archive-border: #33302a;
+  --archive-dot: #6b5f3f;
+  --body-glow: radial-gradient(800px 340px at 88% -10%, rgba(74, 222, 128, .07) 0%, rgba(74, 222, 128, 0) 60%);
+  --mask-bg: rgba(0, 0, 0, .55);
+  --btn-ghost-bg: #2a2e39;
+  --btn-ghost-fg: var(--ink-2);
+  --surface: #1c1f26;
+  --border-strong: #3a4150;
+  --dashed: #39404e;
+  --check-border: #3a4150;
+  --op-hover-bg: #2a2e39;
+  --danger-soft-bg: rgba(248, 113, 113, .12);
+  --archive-all-hover-bg: rgba(74, 222, 128, .2);
+  --switch-off-bg: #3a4150;
+  --switch-knob: #ffffff;
+  --switch-knob-shadow: 0 2px 5px rgba(0, 0, 0, .35);
+  --subtle-bg: #22252e;
+  --a-item-hover-bg: #22252e;
+  --logo-shadow: 0 6px 16px rgba(74, 222, 128, .2);
+  --icon-hover-shadow: 0 4px 12px rgba(0, 0, 0, .4);
+  --btn-shadow: 0 6px 16px rgba(74, 222, 128, .2);
+  --modal-shadow: 0 24px 70px rgba(0, 0, 0, .6);
+  --focus-ring: #4ade80;
+}
+
+:root[data-theme="dark"] select option { background: var(--input-bg); color: var(--ink) }
+
+/* ------------------------------------------------------------
+   护眼模式：豆沙绿（配色参考 markdown_reader 的护眼配色）
+   低对比、无冷蓝；卡片比页面底稍亮，归档卡片比卡片稍深，
+   三层次靠明度差区分，所以没有用纯白卡片压绿底。
+   ------------------------------------------------------------ */
+:root[data-theme="eyecare"] {
+  color-scheme: light;
+  --bg: #c7edcc;
+  --card: #e8f8ea;
+  --ink: #24352a;
+  --ink-2: #4c6b54;
+  --ink-3: #5f7d67;
+  --line: rgba(26, 90, 45, .16);
+  --line-2: rgba(26, 90, 45, .10);
+  --primary: #1a7a3e;
+  --primary-soft: rgba(26, 122, 62, .12);
+  --danger: #b8452f;
+  --radius: 18px;
+  --shadow: 0 8px 30px rgba(24, 70, 40, .12);
+  --card-border: 1px solid rgba(26, 90, 45, .14);
+  --primary-grad: linear-gradient(135deg, #2f9a55, #1a7a3e);
+  --on-primary: #ffffff;
+  --check-done-bg: var(--primary-grad);
+  --hover-bg: rgba(26, 90, 45, .07);
+  --input-bg: #f4fcf5;
+  --tab-radius: 999px;
+  --tab-bg: rgba(26, 90, 45, .10);
+  --tab-hover-bg: rgba(26, 90, 45, .17);
+  --tab-active-bg: var(--primary-grad);
+  --tab-active-fg: #ffffff;
+  --tab-active-shadow: 0 5px 14px rgba(26, 122, 62, .30);
+  --tab-active-border: transparent;
+  --tab-padding: 7px 14px;
+  --badge-bg: rgba(26, 90, 45, .14);
+  --badge-active-bg: rgba(255, 255, 255, .30);
+  --tag-fg: var(--primary);
+  --tag-bg: var(--primary-soft);
+  --tag-none-fg: var(--ink-3);
+  --tag-none-bg: rgba(26, 90, 45, .10);
+  --archive-card-bg: #d8f0dc;
+  --archive-border: rgba(26, 90, 45, .18);
+  --archive-dot: #6ba97c;
+  --body-glow: radial-gradient(900px 380px at 85% -8%, #d9f4dd 0%, rgba(217, 244, 221, 0) 60%);
+  --mask-bg: rgba(20, 50, 30, .35);
+  --btn-ghost-bg: rgba(26, 90, 45, .10);
+  --btn-ghost-fg: var(--ink-2);
+  --surface: #e8f8ea;
+  --border-strong: rgba(26, 90, 45, .30);
+  --dashed: rgba(26, 90, 45, .34);
+  --check-border: rgba(26, 90, 45, .36);
+  --op-hover-bg: rgba(26, 90, 45, .12);
+  --danger-soft-bg: rgba(184, 69, 47, .12);
+  --archive-all-hover-bg: rgba(26, 122, 62, .20);
+  --switch-off-bg: rgba(26, 90, 45, .25);
+  --switch-knob: #ffffff;
+  --switch-knob-shadow: 0 2px 5px rgba(0, 0, 0, .2);
+  --subtle-bg: rgba(26, 90, 45, .06);
+  --a-item-hover-bg: rgba(255, 255, 255, .55);
+  --logo-shadow: 0 6px 16px rgba(26, 122, 62, .32);
+  --icon-hover-shadow: 0 4px 12px rgba(26, 122, 62, .15);
+  --btn-shadow: 0 6px 16px rgba(26, 122, 62, .30);
+  --modal-shadow: 0 24px 70px rgba(20, 60, 35, .28);
+  --focus-ring: rgba(26, 90, 45, .32);
+}
+
+/* ============================================================
+   3) 组件规则（结构以预览稿 A 为蓝本，颜色全部走变量）
+   ============================================================ */
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px }
+.brand { display: flex; align-items: center; gap: 11px; font-size: 21px; font-weight: 700; letter-spacing: .2px }
+.logo {
+  width: 38px; height: 38px; border-radius: 12px; background: var(--primary-grad);
+  display: grid; place-items: center; color: var(--on-primary); font-size: 18px;
+  box-shadow: var(--logo-shadow);
+}
+.icon-btn {
+  border: 1px solid var(--line); background: var(--card); width: 40px; height: 40px; border-radius: 12px;
+  display: grid; place-items: center; cursor: pointer; color: var(--ink-2); transition: .15s;
+}
+.icon-btn:hover { color: var(--primary); border-color: var(--border-strong); box-shadow: var(--icon-hover-shadow) }
+.icon-btn svg { width: 19px; height: 19px }
+
+.card { background: var(--card); border: var(--card-border); border-radius: var(--radius); box-shadow: var(--shadow) }
+
+.tabs { display: flex; align-items: center; gap: 8px; padding: 16px 18px 0; flex-wrap: wrap }
+.tab {
+  border: none; background: var(--tab-bg); color: var(--ink-2); font-size: 14px; font-weight: 500;
+  padding: var(--tab-padding); border-radius: var(--tab-radius); cursor: pointer; display: flex; align-items: center; gap: 7px;
+  transition: .15s; font-family: inherit; border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.tab:hover { background: var(--tab-hover-bg); color: var(--ink) }
+.tab.active { background: var(--tab-active-bg); color: var(--tab-active-fg); box-shadow: var(--tab-active-shadow); border-bottom-color: var(--tab-active-border) }
+.tab .badge {
+  font-size: 11.5px; font-weight: 600; background: var(--badge-bg); color: inherit;
+  min-width: 19px; height: 19px; border-radius: 999px; display: grid; place-items: center; padding: 0 5px;
+}
+.tab.active .badge { background: var(--badge-active-bg) }
+.tab.add { background: transparent; border: 1.5px dashed var(--dashed); color: var(--ink-3); padding: 6px 12px }
+.tab.add:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft) }
+
+.task-list { list-style: none; padding: 10px 10px 10px }
+.task {
+  display: flex; align-items: center; gap: 12px; padding: 10px 10px; border-radius: 13px;
+  transition: background .12s; position: relative;
+}
+.task:hover { background: var(--hover-bg) }
+.task:hover .ops { opacity: 1 }
+/* 拖拽手柄：绝对定位在行左侧留白里，不占布局；悬停才显形。
+   只有它是 draggable —— 整行可拖会抢掉标题的文字选择 */
+.grip {
+  position: absolute; left: -7px; top: 50%; transform: translateY(-50%);
+  width: 18px; height: 22px; display: grid; place-items: center;
+  color: var(--ink-3); opacity: 0; cursor: grab; transition: opacity .13s;
+}
+.grip svg { width: 15px; height: 15px }
+.task:hover .grip { opacity: .7 }
+.grip:active { cursor: grabbing }
+.task.dragging { opacity: .4 }
+.task.drop-before::before, .task.drop-after::after {
+  content: ""; position: absolute; left: 8px; right: 8px; height: 2px; border-radius: 2px; background: var(--primary);
+}
+.task.drop-before::before { top: -1px }
+.task.drop-after::after { bottom: -1px }
+.check {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--check-border); cursor: pointer; flex: none;
+  display: grid; place-items: center; transition: .15s; background: transparent;
+}
+.check svg { width: 12px; height: 12px; color: var(--on-primary); opacity: 0; transform: scale(.5); transition: .15s }
+.check:hover { border-color: var(--primary) }
+.task.done .check { background: var(--check-done-bg); border-color: transparent }
+.task.done .check svg { opacity: 1; transform: scale(1) }
+.title { flex: 1; line-height: 1.5; cursor: default; outline: none; border-radius: 6px; padding: 1px 4px; margin-left: -4px }
+.title.editable { cursor: text }
+.title.editable:hover { background: var(--hover-bg) }
+/* 行内编辑输入框：盒子做到 38px 舒展，但用负外边距抵消掉高出来的部分 ——
+   行的内容高度由 --row-content-h 决定，所以编辑时行高完全不变（零跳动） */
+.title-input {
+  flex: 1; min-width: 0; font-family: inherit; font-size: 15px; line-height: 22px;
+  height: calc(var(--row-content-h) + var(--input-lift));
+  margin: calc(var(--input-lift) / -2) 0;
+  padding: 7px 10px; border: 1px solid var(--border-strong); border-radius: 10px;
+  color: var(--ink); background: var(--input-bg); outline: none;
+  transition: border-color .13s, box-shadow .13s;
+}
+.title-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft) }
+.task.done .title { color: var(--ink-3); text-decoration: line-through }
+.g-tag { font-size: 11.5px; color: var(--tag-fg); background: var(--tag-bg); padding: 2px 9px; border-radius: 999px; flex: none }
+.g-tag.none { color: var(--tag-none-fg); background: var(--tag-none-bg) }
+.ops { display: flex; gap: 3px; opacity: 0; transition: .15s; flex: none }
+.task .ops { min-width: 93px; justify-content: flex-end }
+.op {
+  border: none; background: transparent; width: 28px; height: var(--row-content-h); border-radius: 9px; cursor: pointer;
+  display: grid; place-items: center; color: var(--ink-3); transition: .13s;
+}
+.op svg { width: 15.5px; height: 15.5px }
+.op:hover { background: var(--op-hover-bg); color: var(--primary) }
+.op.del:hover { background: var(--danger-soft-bg); color: var(--danger) }
+
+.done-divider { display: flex; align-items: center; gap: 10px; margin: 8px 14px 2px; color: var(--ink-3); font-size: 12px }
+.done-divider .rule { flex: 1; height: 1px; background: var(--line) }
+
+/* 新增行在列表上方，用一条细线把「输入区」和「列表区」分开 */
+.add-row { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--line) }
+.add-row .plus {
+  width: 26px; height: 26px; border-radius: 50%; border: 2px dashed var(--dashed); color: var(--primary);
+  display: grid; place-items: center; flex: none; font-size: 15px; line-height: 1;
+}
+.add-row input { flex: 1; border: none; outline: none; font-size: 14.5px; font-family: inherit; color: var(--ink); background: transparent }
+.add-row input::placeholder { color: var(--ink-3) }
+.select-wrap { position: relative; flex: none }
+.select-wrap select {
+  appearance: none; -webkit-appearance: none; border: 1px solid var(--line); background: var(--input-bg);
+  font-family: inherit; font-size: 12.5px; color: var(--ink-2); font-weight: 500; cursor: pointer;
+  padding: 6px 28px 6px 13px; border-radius: 999px; outline: none; max-width: 130px;
+}
+.select-wrap select:hover { border-color: var(--border-strong) }
+.select-wrap select:focus { border-color: var(--primary) }
+.select-wrap::after {
+  content: ""; position: absolute; right: 12px; top: 50%; width: 7px; height: 7px; pointer-events: none;
+  border-right: 1.6px solid var(--ink-3); border-bottom: 1.6px solid var(--ink-3);
+  transform: translateY(-70%) rotate(45deg);
+}
+.add-row .g-tag { cursor: default }
+.archive-all {
+  border: none; background: var(--primary-soft); color: var(--primary); font-size: 12px; font-weight: 600;
+  padding: 4px 11px; border-radius: 999px; cursor: pointer; font-family: inherit; flex: none;
+}
+.archive-all:hover { background: var(--archive-all-hover-bg) }
+
+.empty { text-align: center; color: var(--ink-3); font-size: 13.5px; padding: 26px 0 }
+
+.archive-card { margin-top: 20px; background: var(--archive-card-bg); border: 1px solid var(--archive-border); box-shadow: none }
+/* 归档默认折叠：头部是可点的开关，右侧箭头指示展开态 */
+.archive-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 20px; cursor: pointer; user-select: none }
+.chevron {
+  width: 8px; height: 8px; flex: none; margin-right: 4px;
+  border-right: 1.6px solid var(--ink-3); border-bottom: 1.6px solid var(--ink-3);
+  transform: rotate(45deg); transition: transform .15s;
+}
+.archive-card:not(.collapsed) .chevron { transform: rotate(-135deg) }
+.archive-card.collapsed .archive-body,
+.archive-card.collapsed .search-box,
+.archive-card.collapsed .archive-title .sub { display: none }
+.a-count { font-size: 11.5px; font-weight: 600; color: var(--tag-fg); background: var(--tag-bg); padding: 2px 8px; border-radius: 999px }
+.a-count:empty { display: none }
+.archive-title { font-weight: 700; display: flex; align-items: center; gap: 8px; font-size: 15px }
+.archive-title .sub { font-weight: 400; font-size: 12.5px; color: var(--ink-3) }
+.search-box {
+  display: flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--archive-border);
+  border-radius: 10px; padding: 6px 11px; width: 230px;
+}
+.search-box svg { width: 15px; height: 15px; color: var(--ink-3); flex: none }
+.search-box input { border: none; outline: none; font-size: 13.5px; font-family: inherit; flex: 1; background: transparent; color: var(--ink) }
+.archive-list { list-style: none; padding: 0 12px }
+.a-item { display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 11px }
+.a-item:hover { background: var(--a-item-hover-bg) }
+.a-item:hover .ops { opacity: 1 }
+.a-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--archive-dot); flex: none }
+.a-title { flex: 1; color: var(--ink-2); font-size: 14px }
+.a-date { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; flex: none }
+.archive-foot { padding: 10px 20px 16px; font-size: 12px; color: var(--ink-3) }
+
+.mask {
+  position: fixed; inset: 0; background: var(--mask-bg); backdrop-filter: blur(2px);
+  display: none; align-items: flex-start; justify-content: center; padding-top: 120px; z-index: 20;
+}
+.mask.show { display: flex }
+.modal { background: var(--surface); border-radius: 18px; box-shadow: var(--modal-shadow); width: 430px; max-width: 92vw; padding: 24px; animation: pop .18s ease }
+@keyframes pop { from { transform: translateY(8px) scale(.98); opacity: 0 } to { transform: none; opacity: 1 } }
+.modal h3 { font-size: 17px; margin-bottom: 4px }
+/* 自动保存说明：比副标题更淡的一行，紧跟在标题下 */
+.modal-note { color: var(--ink-3); font-size: 12px; line-height: 1.5; margin-bottom: 14px }
+/* 设置分组 tab（基本 / 高级）：切分组只翻 hidden，不重渲染 */
+.modal-tabs { display: flex; gap: 6px; margin-bottom: 4px; border-bottom: 1px solid var(--line) }
+.modal-tab {
+  border: none; background: transparent; color: var(--ink-2); font-family: inherit; font-size: 13.5px;
+  font-weight: 500; padding: 8px 12px; border-radius: 8px 8px 0 0; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px; transition: .13s;
+}
+.modal-tab:hover { color: var(--ink); background: var(--hover-bg) }
+.modal-tab.active { color: var(--primary); border-bottom-color: var(--primary) }
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--line) }
+.setting-row small { color: var(--ink-3); font-size: 12px; line-height: 1.5 }
+.setting-row input[type=number] {
+  width: 76px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px;
+  font-family: inherit; outline: none; text-align: center; background: var(--input-bg); color: var(--ink);
+}
+.setting-row input[type=number]:focus { border-color: var(--primary) }
+.setting-row select {
+  padding: 7px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 13.5px;
+  font-family: inherit; outline: none; background: var(--input-bg); color: var(--ink); cursor: pointer; max-width: 160px;
+}
+.setting-row select:focus { border-color: var(--primary) }
+.switch { position: relative; width: 44px; height: 25px; flex: none; appearance: none; -webkit-appearance: none; background: var(--switch-off-bg); border-radius: 999px; cursor: pointer; transition: .2s }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 19px; height: 19px; border-radius: 50%; background: var(--switch-knob); transition: .2s; box-shadow: var(--switch-knob-shadow) }
+.switch:checked { background: var(--primary) }
+.switch:checked::after { transform: translateX(19px) }
+.modal-actions { display: flex; justify-content: flex-end; margin-top: 20px }
+.btn { border: none; padding: 9px 22px; border-radius: 11px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit }
+.btn.primary { background: var(--primary-grad); color: var(--on-primary); box-shadow: var(--btn-shadow) }
+.btn.ghost { background: var(--btn-ghost-bg); color: var(--btn-ghost-fg) }
+
+.g-new { display: flex; gap: 8px; margin-bottom: 14px }
+.g-new input { flex: 1; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; background: var(--input-bg); color: var(--ink) }
+.g-new input:focus { border-color: var(--primary) }
+.g-new button { border: none; background: var(--primary-grad); color: var(--on-primary); width: 38px; border-radius: 10px; cursor: pointer; font-size: 18px }
+.g-edit-list { list-style: none; display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow: auto }
+.g-edit-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--subtle-bg); border-radius: 11px }
+.g-edit-item .gname { flex: 1; font-size: 14px; outline: none; border-radius: 6px; padding: 2px 6px; margin-left: -6px }
+.g-edit-item .gname:focus { background: var(--card); box-shadow: 0 0 0 2px var(--focus-ring) }
+.g-count { font-size: 12px; color: var(--ink-3) }
+.g-del { border: none; background: transparent; color: var(--ink-3); cursor: pointer; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center }
+.g-del svg { width: 15px; height: 15px }
+.g-del:hover { background: var(--danger-soft-bg); color: var(--danger) }
+.g-tip { font-size: 12px; color: var(--ink-3); margin-top: 12px; line-height: 1.6 }
+
+/* toast（Task 11） */
+.toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(10px);
+  background: var(--ink); color: var(--bg); font-size: 13px; padding: 9px 18px; border-radius: 999px;
+  box-shadow: var(--modal-shadow); opacity: 0; pointer-events: none; transition: .2s; z-index: 40;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0) }
+
+/* ---- 以下仅预览页使用，不进产物 ---- */
+.preview-bar {
+  position: fixed; right: 16px; bottom: 16px; z-index: 60; display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px; border-radius: 999px; background: rgba(18, 22, 28, .86); color: #fff;
+  font-size: 12.5px; font-family: inherit; box-shadow: 0 10px 30px rgba(0, 0, 0, .3); backdrop-filter: blur(6px);
+}
+.preview-bar button {
+  border: 1px solid rgba(255, 255, 255, .22); background: transparent; color: inherit; font-family: inherit;
+  font-size: 12.5px; padding: 5px 10px; border-radius: 999px; cursor: pointer; transition: .13s;
+}
+.preview-bar button:hover { background: rgba(255, 255, 255, .14) }
+.preview-bar button.on { background: #fff; color: #12161c; border-color: #fff }
+.preview-hint { color: rgba(255, 255, 255, .6); margin-right: 2px }
+</style>
+</head>
+<body>
+<div id="root">
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="logo">&#x2726;</span><span data-i18n="appTitle">我的待办</span></div>
+    <button class="icon-btn" id="settingsBtn" title="全局设置">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </header>
+
+  <section class="card">
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-g="all">全部<span class="badge">3</span></button>
+      <button class="tab" data-g="g1">工作<span class="badge">2</span></button>
+      <button class="tab" data-g="g2">生活<span class="badge">1</span></button>
+      <button class="tab add" title="管理分组">+</button></nav>
+    <!-- 新增行常驻在列表上方：任务变多时不用滚到底部才能新增；分组选择钉在右侧 -->
+    <div class="add-row">
+      <span class="plus">+</span>
+      <input id="newTask" placeholder="添加任务，回车确认…">
+      <span id="groupPicker"></span>
+    </div>
+    <ul class="task-list" id="taskList">
+    <li class="task" data-id="t">
+      <span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg></span>
+      <button class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>
+      <span class="title editable" title="双击编辑">把季度复盘写成文档</span>
+      <span class="g-tag">工作</span>
+      <span class="ops"><button class="op"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button class="op del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></span>
+    </li>
+    <li class="task" data-id="t">
+      <span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg></span>
+      <button class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>
+      <span class="title editable" title="双击编辑">给设计稿补上暗色主题</span>
+      <span class="g-tag">工作</span>
+      <span class="ops"><button class="op"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button class="op del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></span>
+    </li>
+    <li class="task" data-id="t">
+      <span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg></span>
+      <button class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>
+      <span class="title editable" title="双击编辑">买猫粮和猫砂</span>
+      <span class="g-tag">生活</span>
+      <span class="ops"><button class="op"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button class="op del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></span>
+    </li>    <div class="done-divider"><span>已完成 2</span><span class="rule"></span><button class="archive-all">全部归档 (2)</button></div>
+    <li class="task done" data-id="t">
+      <span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg></span>
+      <button class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>
+      <span class="title">回复上周的邮件</span>
+      <span class="g-tag">工作</span>
+      <span class="ops"><button class="op"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg></button><button class="op"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg></button><button class="op del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></span>
+    </li>
+    <li class="task done" data-id="t">
+      <span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg></span>
+      <button class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>
+      <span class="title">整理桌面文件夹</span>
+      
+      <span class="ops"><button class="op"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg></button><button class="op"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg></button><button class="op del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></span>
+    </li></ul>
+  </section>
+
+  <section class="card archive-card" id="archiveCard">
+    <!-- 头部整行可点：默认折叠，点一下展开（状态记在 ui-state 里） -->
+    <div class="archive-head" id="archiveHead" role="button" tabindex="0" aria-expanded="false" title="点击展开或折叠归档区">
+      <div class="archive-title">&#x1F4E6;<span data-i18n="archiveTitle">归档</span><span class="sub" id="archiveSub">最近 4 条</span><span class="a-count" id="archiveCount">4</span></div>
+      <div class="search-box" id="archiveSearchWrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="search" placeholder="搜索归档任务…">
+      </div>
+      <span class="chevron" aria-hidden="true"></span>
+    </div>
+    <div class="archive-body" id="archiveBody">
+      <ul class="archive-list" id="archiveList">
+      <li class="a-item" data-id="a"><span class="a-dot"></span><span class="a-title">上线前的回归清单</span>
+        <span class="g-tag">工作</span><span class="a-date">03-14</span>
+        <span class="ops"><button class="op"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg></button><button class="op del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></span>
+      </li>
+      <li class="a-item" data-id="a"><span class="a-dot"></span><span class="a-title">把旧硬盘的资料归档</span>
+        <span class="g-tag">生活</span><span class="a-date">03-12</span>
+        <span class="ops"><button class="op"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg></button><button class="op del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></span>
+      </li>
+      <li class="a-item" data-id="a"><span class="a-dot"></span><span class="a-title">清理订阅与账单</span>
+        <span class="g-tag">生活</span><span class="a-date">03-08</span>
+        <span class="ops"><button class="op"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg></button><button class="op del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></span>
+      </li>
+      <li class="a-item" data-id="a"><span class="a-dot"></span><span class="a-title">整理面试题库</span>
+        <span class="g-tag">工作</span><span class="a-date">02-28</span>
+        <span class="ops"><button class="op"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg></button><button class="op del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></span>
+      </li></ul>
+      <div class="archive-foot" id="archiveFoot">共 4 条归档</div>
+    </div>
+  </section>
+</div>
+
+<div class="mask" id="settingsMask"><div class="modal" id="settingsBody"></div></div>
+<div class="mask" id="groupMask"><div class="modal" id="groupBody"></div></div>
+<div class="toast" id="toast"></div>
+</div>
+
+  <div class="mask show" id="previewMask"><div class="modal">
+    <h3>全局设置</h3>
+    <p class="modal-note">改动即时保存，无需确认。</p>
+    <nav class="modal-tabs">
+      <button class="modal-tab active">基本设置</button>
+      <button class="modal-tab">高级设置</button>
+    </nav>
+    <div class="settings-pane">
+      <div class="setting-row"><div>主题</div><select><option>跟随系统</option><option>柔和明亮</option><option>极简专业</option><option>暗色专注</option><option selected>护眼模式</option></select></div>
+      <div class="setting-row"><div>语言</div><select><option>跟随浏览器</option><option selected>简体中文</option><option>English</option></select></div>
+      <div class="setting-row"><div><div>新建任务位置</div><small>选「排在最前」时，新增与恢复归档的任务都插到待办列表最上面</small></div><select><option selected>排在最后</option><option>排在最前</option></select></div>
+      <div class="setting-row"><div><div>自动归档</div><small>勾选完成后，任务直接进入归档区，不在上方停留</small></div><input type="checkbox" class="switch"></div>
+      <div class="setting-row"><div><div>接管空白标签页</div><small>关闭后新标签页不再自动跳到待办页，改由浏览器显示默认页面。</small></div><input type="checkbox" class="switch" checked></div>
+    </div>
+    <div class="settings-pane" hidden>
+      <div class="setting-row"><div><div>默认显示条数</div><small>仅影响默认展示数量，搜索仍覆盖全部归档</small></div><input type="number" value="10"></div>
+      <div class="setting-row"><div><div>活跃任务上限</div><small>只限制新增；调小上限不会删除已有任务</small></div><input type="number" value="50"></div>
+      <div class="setting-row"><div><div>归档容量上限</div><small>调小上限不会立刻删归档，刷新页面后才按新上限裁剪</small></div><input type="number" value="100"></div>
+    </div>
+    <div class="modal-actions"><button class="btn primary">关闭</button></div>
+  </div></div>
+
+<div class="preview-bar">
+  <span class="preview-hint">主题</span>
+  <button data-set="auto">跟随系统</button><button data-set="soft">柔和明亮</button><button data-set="minimal">极简专业</button><button data-set="dark">暗色专注</button><button data-set="eyecare" class="on">护眼模式</button>
+  <button id="previewModal">设置弹层</button>
+</div>
+
+<script>
+  // 主题切换（预览专用）：直接改 <html data-theme>，跟扩展里 setTheme 的做法一致
+  const root = document.documentElement;
+  const paint = (id) => {
+    const resolved = id === 'auto'
+      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'soft')
+      : id;
+    root.dataset.theme = resolved;
+    root.style.colorScheme = resolved === 'dark' ? 'dark' : 'light';
+    document.querySelectorAll('.preview-bar [data-set]').forEach((b) => b.classList.toggle('on', b.dataset.set === id));
+  };
+  document.querySelectorAll('.preview-bar [data-set]').forEach((b) => { b.onclick = () => paint(b.dataset.set); });
+  // 支持 ?theme=dark 直接打开某套
+  const wanted = new URLSearchParams(location.search).get('theme');
+  paint(wanted || 'eyecare');
+
+  // 设置弹层开关 + 两个分组 tab
+  const mask = document.getElementById('previewMask');
+  mask.classList.remove('show');
+  document.getElementById('previewModal').onclick = () => mask.classList.toggle('show');
+  mask.onclick = (e) => { if (e.target === mask) mask.classList.remove('show'); };
+  document.querySelectorAll('.modal-tab').forEach((btn) => {
+    btn.onclick = () => {
+      document.querySelectorAll('.modal-tab').forEach((b) => b.classList.toggle('active', b === btn));
+      const panes = document.querySelectorAll('.settings-pane');
+      const index = [...document.querySelectorAll('.modal-tab')].indexOf(btn);
+      panes.forEach((p, i) => { p.hidden = i !== index; });
+    };
+  });
+</script>
+</body>
+</html>

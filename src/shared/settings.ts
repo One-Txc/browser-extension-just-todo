@@ -1,5 +1,7 @@
-export type ThemeId = 'auto' | 'soft' | 'minimal' | 'dark';
+export type ThemeId = 'auto' | 'soft' | 'minimal' | 'dark' | 'eyecare';
 export type LocaleId = 'auto' | 'zh_CN' | 'en';
+/** 新建（含恢复归档）的任务插在待办列表的最前还是最后 */
+export type NewTaskPosition = 'first' | 'last';
 
 export interface TodoSettings {
   locale: LocaleId;
@@ -7,6 +9,7 @@ export interface TodoSettings {
   autoArchive: boolean;
   archiveVisible: number;
   newtabOverride: boolean;
+  newTaskPosition: NewTaskPosition;
   activeLimit: number;
   archiveLimit: number;
 }
@@ -17,6 +20,7 @@ export const DEFAULT_SETTINGS: TodoSettings = {
   autoArchive: false,
   archiveVisible: 10,
   newtabOverride: true,
+  newTaskPosition: 'last',
   activeLimit: 50,
   archiveLimit: 100,
 };
@@ -28,8 +32,9 @@ export const LIMITS = {
 } as const;
 
 const SETTINGS_KEY = 'todo:settings:v1';
-const THEMES: readonly ThemeId[] = ['auto', 'soft', 'minimal', 'dark'];
+const THEMES: readonly ThemeId[] = ['auto', 'soft', 'minimal', 'dark', 'eyecare'];
 const LOCALES: readonly LocaleId[] = ['auto', 'zh_CN', 'en'];
+const POSITIONS: readonly NewTaskPosition[] = ['first', 'last'];
 
 function clamp(n: unknown, range: { min: number; max: number }, fallback: number): number {
   const v = typeof n === 'number' && Number.isFinite(n) ? Math.trunc(n) : fallback;
@@ -52,6 +57,7 @@ export function normalizeSettings(raw: unknown): TodoSettings {
     autoArchive: bool(r.autoArchive, DEFAULT_SETTINGS.autoArchive),
     archiveVisible: clamp(r.archiveVisible, LIMITS.archiveVisible, DEFAULT_SETTINGS.archiveVisible),
     newtabOverride: bool(r.newtabOverride, DEFAULT_SETTINGS.newtabOverride),
+    newTaskPosition: oneOf(r.newTaskPosition, POSITIONS, DEFAULT_SETTINGS.newTaskPosition),
     activeLimit: clamp(r.activeLimit, LIMITS.activeLimit, DEFAULT_SETTINGS.activeLimit),
     archiveLimit: clamp(r.archiveLimit, LIMITS.archiveLimit, DEFAULT_SETTINGS.archiveLimit),
   };

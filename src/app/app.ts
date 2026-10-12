@@ -1,5 +1,9 @@
-export {};
+import { mountApp } from './mount.ts';
+import { openSettingsModal } from './components/settings-modal.ts';
 
-document.title = 'Todo Just';
 const root = document.querySelector('#root');
-if (root) root.textContent = 'todo-just build ok';
+if (root) {
+  void mountApp(root as HTMLElement).then(() => {
+    if (location.hash === '#settings') openSettingsModal();
+  });
+}

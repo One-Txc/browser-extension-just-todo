@@ -16,6 +16,7 @@ const candidates = [
   'tests/themes.test.ts',
   'tests/ui.test.ts',
   'tests/newtab.test.ts',
+  'tests/ui-state.test.ts',
 ];
 const entryPoints = candidates.filter((f) => existsSync(f));
 
@@ -32,6 +33,9 @@ await build({
   bundle: true,
   format: 'esm',
   platform: 'node',
+  // jsdom 是 CJS 且内部有动态 require('path') 等，打进 ESM 产物会触发
+  // "Dynamic require ... is not supported"；交给 Node 运行时解析即可。
+  external: ['jsdom'],
   loader: { '.css': 'text' },
   logLevel: 'warning',
 });

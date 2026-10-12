@@ -10,8 +10,10 @@
     "build:firefox": "node scripts/build.mjs --target=firefox",
     "build:all": "npm run build && npm run build:firefox",
     "watch": "node scripts/build.mjs --watch",
+    "preview": "node scripts/make-preview.mjs",
     "check": "npm run typecheck && npm run test && npm run build:all",
-    "package": "npm run build:all && uv run --with pillow python scripts/package.py"
+    "check:locales": "uv run python scripts/check-locales.py",
+    "package": "npm run build:all && uv run python scripts/package.py"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.287",

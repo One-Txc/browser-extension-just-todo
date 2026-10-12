@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6d8bff"/>
+      <stop offset="1" stop-color="#8a6df5"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="128" height="128" rx="29" fill="url(#g)"/>
+  <g fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <!-- 首行：对勾 + 短线 -->
+    <path d="M40 45l7 8 12-15"/>
+    <path d="M64 45h28"/>
+    <!-- 第二、三行：圆点 + 短线 -->
+    <path d="M64 64h28"/>
+    <path d="M64 83h28"/>
+  </g>
+  <g fill="#ffffff">
+    <circle cx="46" cy="64" r="4.5"/>
+    <circle cx="46" cy="83" r="4.5"/>
+  </g>
+</svg>

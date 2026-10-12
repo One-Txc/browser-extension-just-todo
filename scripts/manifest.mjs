@@ -19,9 +19,13 @@ export function buildManifest(target) {
     version: VERSION,
     description: '__MSG_extDescription__',
     default_locale: 'zh_CN',
-    permissions: ['storage'],
+    /*
+     * 不声明 chrome_url_overrides：静态覆盖没有运行时开关，关掉「接管」也只能显示
+     * 一张空白页。改为 background 监听新标签页事件后重定向（需要 tabs 权限读地址），
+     * 关闭开关即可真正交还浏览器原生新标签页。见 docs/设计文档.md 第 11 节。
+     */
+    permissions: ['storage', 'tabs'],
     icons: ICONS,
-    chrome_url_overrides: { newtab: p('newtab.html') },
   };
   if (target === 'firefox') {
     return {

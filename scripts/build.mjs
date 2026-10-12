@@ -13,7 +13,7 @@
  *   node scripts/build.mjs --watch            # 监听重建
  */
 import * as esbuild from 'esbuild';
-import { rm, mkdir, cp, readFile, writeFile } from 'node:fs/promises';
+import { rm, mkdir, cp, readFile, readdir, writeFile } from 'node:fs/promises';
 import { buildManifest, LAYOUT } from './manifest.mjs';
 
 const watch = process.argv.includes('--watch');
@@ -142,7 +142,11 @@ await cp('src/newtab/newtab.html', `${outDir}/newtab.html`);
  */
 if (extRoot !== '.') {
   await cp('_locales', `${extRoot}/_locales`, { recursive: true });
-  await cp('icons', `${extRoot}/icons`, { recursive: true });
+  // 只带 PNG 图标；icons/source.svg 是设计源，不进产物
+  await mkdir(`${extRoot}/icons`, { recursive: true });
+  for (const f of await readdir('icons')) {
+    if (f.endsWith('.png')) await cp(`icons/${f}`, `${extRoot}/icons/${f}`);
+  }
 }
 
 const entryOptions = (e) => ({
