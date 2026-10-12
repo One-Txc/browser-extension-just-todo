@@ -1,0 +1,10 @@
+{
+  "extName": {
+    "message": "Todo Just",
+    "description": "扩展名称"
+  },
+  "extDescription": {
+    "message": "Todo Just：接管新标签页的极简待办清单，支持分组、归档与多主题。",
+    "description": "扩展描述"
+  }
+}

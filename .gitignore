@@ -1,0 +1,8 @@
+node_modules/
+output/
+dist/
+.test-build/
+*.log
+.idea/
+.superpowers/
+.claude/
