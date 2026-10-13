@@ -44,7 +44,7 @@ function rowHtml(ctx: AppContext, task: Task, isDone: boolean, showGroup: boolea
   return `<li class="task ${isDone ? 'done' : ''}" data-id="${esc(task.id)}">
     <span class="grip" draggable="true" aria-hidden="true" title="${esc(t('dragHint'))}">${ICON.grip}</span>
     <button class="check" data-act="toggle">${ICON.check}</button>
-    <span class="title${isDone ? '' : ' editable'}"${isDone ? '' : ` title="${esc(t('editHint'))}"`}>${esc(task.title)}</span>
+    <span class="title${isDone ? '' : ' editable'}"${isDone ? '' : ` title="${esc(t('editHint'))}"`}><span class="t-text">${esc(task.title)}</span><span class="t-fill" draggable="true" aria-hidden="true"></span></span>
     ${showGroup ? `<span class="g-tag${gname ? '' : ' none'}">${esc(gname ?? t('ungrouped'))}</span>` : ''}
     <span class="ops">${ops}<button class="op del" data-act="del" title="${esc(t('opDelete'))}">${ICON.trash}</button></span>
   </li>`;

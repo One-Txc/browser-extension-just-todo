@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 const VERSION = pkg.version;
-const NAME = 'Todo Just';
+const NAME = 'Just Todo';
 
 export const LAYOUT = {
   chrome:  { extRoot: 'output/MV3', outDir: 'output/MV3/build', manifestPath: 'output/MV3/manifest.json', needsPrefix: true },

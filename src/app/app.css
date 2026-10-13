@@ -71,7 +71,6 @@ body {
   --switch-knob-shadow: 0 2px 5px rgba(0, 0, 0, .2);
   --subtle-bg: #f7f8fd;
   --a-item-hover-bg: rgba(255, 255, 255, .8);
-  --logo-shadow: 0 6px 16px rgba(107, 124, 250, .4);
   --icon-hover-shadow: 0 4px 12px rgba(91, 124, 250, .15);
   --btn-shadow: 0 6px 16px rgba(107, 124, 250, .35);
   --modal-shadow: 0 24px 70px rgba(40, 50, 100, .25);
@@ -130,7 +129,6 @@ body {
   --switch-knob-shadow: 0 2px 5px rgba(0, 0, 0, .2);
   --subtle-bg: #f5f6f8;
   --a-item-hover-bg: #f5f6f8;
-  --logo-shadow: 0 3px 10px rgba(0, 0, 0, .08);
   --icon-hover-shadow: 0 2px 8px rgba(0, 0, 0, .06);
   --btn-shadow: none;
   --modal-shadow: 0 24px 60px rgba(0, 0, 0, .15);
@@ -190,7 +188,6 @@ body {
   --switch-knob-shadow: 0 2px 5px rgba(0, 0, 0, .35);
   --subtle-bg: #22252e;
   --a-item-hover-bg: #22252e;
-  --logo-shadow: 0 6px 16px rgba(74, 222, 128, .2);
   --icon-hover-shadow: 0 4px 12px rgba(0, 0, 0, .4);
   --btn-shadow: 0 6px 16px rgba(74, 222, 128, .2);
   --modal-shadow: 0 24px 70px rgba(0, 0, 0, .6);
@@ -257,7 +254,6 @@ body {
   --switch-knob-shadow: 0 2px 5px rgba(0, 0, 0, .2);
   --subtle-bg: rgba(26, 90, 45, .06);
   --a-item-hover-bg: rgba(255, 255, 255, .55);
-  --logo-shadow: 0 6px 16px rgba(26, 122, 62, .32);
   --icon-hover-shadow: 0 4px 12px rgba(26, 122, 62, .15);
   --btn-shadow: 0 6px 16px rgba(26, 122, 62, .30);
   --modal-shadow: 0 24px 70px rgba(20, 60, 35, .28);
@@ -268,12 +264,8 @@ body {
    3) 组件规则（结构以预览稿 A 为蓝本，颜色全部走变量）
    ============================================================ */
 .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px }
-.brand { display: flex; align-items: center; gap: 11px; font-size: 21px; font-weight: 700; letter-spacing: .2px }
-.logo {
-  width: 38px; height: 38px; border-radius: 12px; background: var(--primary-grad);
-  display: grid; place-items: center; color: var(--on-primary); font-size: 18px;
-  box-shadow: var(--logo-shadow);
-}
+/* 顶栏只有标题文字，不放图标：品牌位保持干净（图标仍用于工具栏/扩展管理页/商店） */
+.brand { display: flex; align-items: center; font-size: 21px; font-weight: 700; letter-spacing: .2px }
 .icon-btn {
   border: 1px solid var(--line); background: var(--card); width: 40px; height: 40px; border-radius: 12px;
   display: grid; place-items: center; cursor: pointer; color: var(--ink-2); transition: .15s;
@@ -330,13 +322,26 @@ body {
 .check:hover { border-color: var(--primary) }
 .task.done .check { background: var(--check-done-bg); border-color: transparent }
 .task.done .check svg { opacity: 1; transform: scale(1) }
-.title { flex: 1; line-height: 1.5; cursor: default; outline: none; border-radius: 6px; padding: 1px 4px; margin-left: -4px }
+/* 任务标题：容器只占满剩余宽度，文字与「可拖的空白」是两个子元素 ——
+   文字外层**不能有任何 draggable 祖先**：实测给文字加 draggable="false" 或 user-select: text
+   都挡不住 Blink 起拖（左键选字会变成拖拽）。所以可拖的只有行左侧手柄 + 右侧 .t-fill 空白块 */
+.title { flex: 1; min-width: 0; display: flex; align-items: center; line-height: 1.5; cursor: default; border-radius: 6px }
 .title.editable { cursor: text }
+/* 任务标题是列表的主体：比正文大一号、半粗 —— 行内容高度仍由 --row-content-h（28px）决定，
+   16px × 1.5 = 24px 的行走线仍小于它，所以行高不变、编辑时也不跳 */
+.t-text {
+  font-size: 16px; font-weight: 600; cursor: text; outline: none;
+  padding: 1px 4px; margin-left: -4px; border-radius: 6px;
+}
+/* 标题右侧的空白：真正可拖的元素（看不见，但吃满剩余宽度与整行高度） */
+.t-fill { flex: 1; align-self: stretch; min-width: 14px; cursor: grab }
+.t-fill:active { cursor: grabbing }
 .title.editable:hover { background: var(--hover-bg) }
 /* 行内编辑输入框：盒子做到 38px 舒展，但用负外边距抵消掉高出来的部分 ——
-   行的内容高度由 --row-content-h 决定，所以编辑时行高完全不变（零跳动） */
+   行的内容高度由 --row-content-h 决定，所以编辑时行高完全不变（零跳动）。
+   字号/字重必须与 .t-text 一致，否则进入编辑时文字会跳一下 */
 .title-input {
-  flex: 1; min-width: 0; font-family: inherit; font-size: 15px; line-height: 22px;
+  flex: 1; min-width: 0; font-family: inherit; font-size: 16px; font-weight: 600; line-height: 22px;
   height: calc(var(--row-content-h) + var(--input-lift));
   margin: calc(var(--input-lift) / -2) 0;
   padding: 7px 10px; border: 1px solid var(--border-strong); border-radius: 10px;
@@ -344,7 +349,9 @@ body {
   transition: border-color .13s, box-shadow .13s;
 }
 .title-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft) }
+/* 已完成：颜色与删除线挂在容器上（文字继承），字重回落到常规，让未完成的标题更突出 */
 .task.done .title { color: var(--ink-3); text-decoration: line-through }
+.task.done .title .t-text { font-weight: 400 }
 .g-tag { font-size: 11.5px; color: var(--tag-fg); background: var(--tag-bg); padding: 2px 9px; border-radius: 999px; flex: none }
 .g-tag.none { color: var(--tag-none-fg); background: var(--tag-none-bg) }
 .ops { display: flex; gap: 3px; opacity: 0; transition: .15s; flex: none }

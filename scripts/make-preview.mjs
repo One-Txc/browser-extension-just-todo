@@ -28,9 +28,9 @@ const sub = (key, ...args) => args.reduce((s, a) => s.replace('$1', a), M[key]);
 /** 一条任务行（结构照抄 task-list.ts 的 rowHtml） */
 const row = (title, { done = false, group = null } = {}) => `
     <li class="task${done ? ' done' : ''}" data-id="t">
-      <span class="grip" aria-hidden="true">${ICON.grip}</span>
+      <span class="grip" draggable="true" aria-hidden="true">${ICON.grip}</span>
       <button class="check">${ICON.check}</button>
-      <span class="title${done ? '' : ' editable'}"${done ? '' : ` title="${M.editHint}"`}>${title}</span>
+      <span class="title${done ? '' : ' editable'}"${done ? '' : ` title="${M.editHint}"`}><span class="t-text">${title}</span><span class="t-fill" draggable="true" aria-hidden="true"></span></span>
       ${group ? `<span class="g-tag">${group}</span>` : ''}
       <span class="ops">${done
         ? `<button class="op">${ICON.undo}</button><button class="op">${ICON.box}</button>`
@@ -116,7 +116,7 @@ const html = `<!DOCTYPE html>
 <html lang="zh-CN" data-theme="eyecare">
 <head>
 <meta charset="UTF-8">
-<title>Todo Just 主题预览</title>
+<title>Just Todo 主题预览</title>
 <style>
 ${css}
 /* ---- 以下仅预览页使用，不进产物 ---- */

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>图标候选 · Just Todo</title>
+<style>
+  :root { color-scheme: light }
+  * { box-sizing: border-box }
+  body {
+    margin: 0; padding: 32px 28px 80px; background: #f6f7f9; color: #23262f;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  h1 { font-size: 20px; margin: 0 0 6px }
+  .lead { color: #6b7280; font-size: 13.5px; line-height: 1.7; max-width: 880px; margin: 0 0 22px }
+  .lead b { color: #23262f }
+  .card {
+    background: #fff; border: 1px solid #e8eaef; border-radius: 14px; padding: 18px 20px 20px;
+    margin-bottom: 16px; box-shadow: 0 2px 10px rgba(30, 40, 80, .04);
+  }
+  .head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 2px }
+  .tag { font-size: 12px; font-weight: 700; color: #4d6bfa; background: #eef1ff; padding: 2px 9px; border-radius: 999px }
+  .name { font-size: 15.5px; font-weight: 650 }
+  .note { color: #6b7280; font-size: 12.5px; line-height: 1.6; margin: 6px 0 14px }
+  .note .warn { color: #b8452f }
+  .note .ok { color: #1a7a3e }
+  .grid { display: flex; gap: 12px; flex-wrap: wrap }
+  .tile { border-radius: 12px; border: 1px solid #e8eaef; padding: 0; display: grid; place-items: center; overflow: hidden }
+  .tile span { display: grid; place-items: center }
+  .col { display: grid; gap: 6px; justify-items: center }
+  .col .lbl { font-size: 11px; color: #9aa1b0; font-variant-numeric: tabular-nums }
+  .bgs { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end }
+  .bgcol { display: grid; gap: 8px; justify-items: center }
+  .bgname { font-size: 11.5px; color: #6b7280 }
+  .big { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; flex-wrap: wrap }
+  .big .stage { background: #fff; border: 1px solid #e8eaef; border-radius: 16px; padding: 10px }
+  .big .swatches { display: grid; gap: 6px }
+  .swatches .row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #6b7280 }
+  .swatches .box { width: 34px; height: 34px; border-radius: 9px; border: 1px solid #e8eaef; display: grid; place-items: center; background: #fff }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: #6b7280; margin-bottom: 18px }
+  .legend b { display: inline-block; width: 13px; height: 13px; border-radius: 4px; vertical-align: -2px; margin-right: 5px; border: 1px solid #dfe2e8 }
+  .foot { color: #6b7280; font-size: 12.5px; line-height: 1.8; max-width: 880px; margin-top: 22px }
+  code { background: #eef1f5; padding: 1px 5px; border-radius: 5px; font-size: 12px }
+</style>
+</head>
+<body>
+<h1>Just Todo 图标候选</h1>
+<p class="lead" style="background:#eef4ff;border:1px solid #d7e3ff;border-radius:10px;padding:10px 14px">
+  <b>已采用：D（实心圆 + 白勾 · 品牌蓝）</b> —— 已落到 <code>icons/source.svg</code> 与 <code>scripts/make-icons.py</code>，并重新生成了 16/32/48/128 PNG。
+  本页保留作选型记录与后续迭代参考。
+</p>
+<p class="lead">
+  参照主流待办应用（Things、Apple 提醒、Google Tasks、TickTick、Microsoft To Do）的共性：<b>一个对勾</b>，或<b>圈/方块里一个对勾</b>，
+  扁平、无渐变、无阴影。下面 7 个候选都在 24×24 网格上画，**每行是同一尺寸在三种底色下的样子** ——
+  最后一列「深色工具栏」是关键：Chrome 深色主题的工具栏是深灰底，深墨色的图标在那里会糊掉。
+</p>
+<div class="legend">
+  <span><b style="background:#ffffff"></b>白底（扩展管理页 / 商店）</span>
+  <span><b style="background:#f1f3f7"></b>浅色工具栏</span>
+  <span><b style="background:#2b2f36"></b>深色工具栏</span>
+  <span>尺寸：128 / 64 / 32 / 16 px（16 是工具栏真实尺寸，重点看它）</span>
+</div>
+<div id="cards"></div>
+<p class="foot">
+  选好编号告诉我，我会把几何重画进 <code>icons/source.svg</code> 与 <code>scripts/make-icons.py</code>（该项目刻意不依赖 SVG 栅格器，
+  用 Pillow 直接画同款几何），然后重新生成 16/32/48/128 PNG 并更新扩展图标。
+</p>
+<script>
+/* 每个候选：固定颜色（不做主题自适应 —— 扩展图标是产品标识，不该跟着界面主题变） */
+const BLUE = '#4d6bfa';   // 品牌蓝（贴近现有图标渐变的中间值）
+const INK = '#23262f';    // 近黑墨色
+const GREEN = '#1f9d55';  // 备用：护眼主题的绿
+
+const wrap = (inner, fill) => `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+const check = (d, color, w) =>
+  `<path d="${d}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+/* 对勾几何：三个候选共用一条，保证"勾"的手感一致，差异只在容器 */
+const CHECK = 'M7 12.4 10.4 15.8 17.2 8.6';
+const CHECK_SMALL = 'M7.6 12.3 10.8 15.5 16.6 9.1';
+
+const CANDIDATES = [
+  {
+    id: 'A', name: '纯勾 · 深墨', ink: '深墨', tags: ['最简'],
+    note: '只剩一个勾，最干净。<span class="warn">深色工具栏下会糊掉</span>（深灰底 + 深灰勾），要这种形态建议用 B。',
+    svg: wrap(check('M4 12.7 9.5 18.2 20 6.9', INK, 2.9)),
+  },
+  {
+    id: 'B', name: '纯勾 · 品牌蓝', ink: '品牌蓝', tags: ['最简', '推荐'],
+    note: '同 A 的造型，换成饱和蓝：浅色与深色工具栏都清晰，且不需要底色块。',
+    svg: wrap(check('M4 12.7 9.5 18.2 20 6.9', BLUE, 2.9)),
+  },
+  {
+    id: 'C', name: '圆环 + 勾', ink: '品牌蓝', tags: ['圈内勾'],
+    note: '描边圆 + 勾，Google Tasks 那一类。小尺寸下环会变细，16px 时靠 2.4 的线宽撑着。',
+    svg: wrap(
+      `<circle cx="12" cy="12" r="8.9" fill="none" stroke="${BLUE}" stroke-width="2.1"/>` + check(CHECK_SMALL, BLUE, 2.4)
+    ),
+  },
+  {
+    id: 'D', name: '实心圆 + 白勾', ink: '品牌蓝', tags: ['圈内勾', '推荐'],
+    note: '最主流的一档（Things / Apple 提醒 / TickTick 都是这个路子）。实心块在任何底色的工具栏上都立得住，16px 也不糊。',
+    svg: wrap(
+      `<circle cx="12" cy="12" r="11" fill="${BLUE}"/>` + check(CHECK, '#ffffff', 2.6)
+    ),
+    swatches: [
+      ['品牌蓝', wrap(`<circle cx="12" cy="12" r="11" fill="${BLUE}"/>` + check(CHECK, '#ffffff', 2.6))],
+      ['墨黑', wrap(`<circle cx="12" cy="12" r="11" fill="${INK}"/>` + check(CHECK, '#ffffff', 2.6))],
+      ['护眼绿', wrap(`<circle cx="12" cy="12" r="11" fill="${GREEN}"/>` + check(CHECK, '#ffffff', 2.6))],
+    ],
+  },
+  {
+    id: 'E', name: '圆角方块 + 白勾', ink: '品牌蓝', tags: ['方块勾'],
+    note: '和 Chrome 工具栏里"扩展图标都是方块"的语境最贴，圆角 6.5/24（约 27%）与现有图标一致。',
+    svg: wrap(
+      `<rect x="1" y="1" width="22" height="22" rx="6.5" fill="${BLUE}"/>` + check(CHECK, '#ffffff', 2.6)
+    ),
+    swatches: [
+      ['品牌蓝', wrap(`<rect x="1" y="1" width="22" height="22" rx="6.5" fill="${BLUE}"/>` + check(CHECK, '#ffffff', 2.6))],
+      ['墨黑', wrap(`<rect x="1" y="1" width="22" height="22" rx="6.5" fill="${INK}"/>` + check(CHECK, '#ffffff', 2.6))],
+      ['护眼绿', wrap(`<rect x="1" y="1" width="22" height="22" rx="6.5" fill="${GREEN}"/>` + check(CHECK, '#ffffff', 2.6))],
+    ],
+  },
+  {
+    id: 'F', name: '缺口环 + 勾', ink: '品牌蓝', tags: ['有个性'],
+    note: '环上留一段缺口，像进度环"即将完成"。比 C 多一点识别度，代价是 16px 下缺口几乎看不见、只剩个细环。',
+    svg: wrap(
+      `<circle cx="12" cy="12" r="9" fill="none" stroke="${BLUE}" stroke-width="2.6" stroke-linecap="round"
+         stroke-dasharray="43 14" transform="rotate(-48 12 12)"/>` + check(CHECK_SMALL, BLUE, 2.4)
+    ),
+  },
+  {
+    id: 'G', name: '勾 + 清单线', ink: '深墨 / 蓝', tags: ['清单语义'],
+    note: '两行"勾 + 线"，最贴近现状图标的含义，但几何更少更扁平。<span class="warn">深墨版在深色工具栏下同样会糊。</span>',
+    svg: wrap(
+      check('M3.2 7 5.9 9.7 10 5.2', INK, 2.2) +
+      `<path d="M12.6 7.4h8" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>` +
+      check('M3.2 16.6 5.9 19.3 10 14.8', INK, 2.2) +
+      `<path d="M12.6 17h8" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>`
+    ),
+    alt: wrap(
+      check('M3.2 7 5.9 9.7 10 5.2', BLUE, 2.2) +
+      `<path d="M12.6 7.4h8" fill="none" stroke="${BLUE}" stroke-width="2.2" stroke-linecap="round"/>` +
+      check('M3.2 16.6 5.9 19.3 10 14.8', BLUE, 2.2) +
+      `<path d="M12.6 17h8" fill="none" stroke="${BLUE}" stroke-width="2.2" stroke-linecap="round"/>`
+    ),
+  },
+  {
+    id: '现有', name: '现状（渐变方块 + 清单）', ink: '渐变', tags: ['对比'],
+    note: '当前线上图标：蓝紫渐变方块 + 白色清单（对勾 + 三行线 + 两个圆点）。放进来只为对比 —— 它有渐变、线条多，16px 下细节会互相挤。',
+    svg: `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#6d8bff"/><stop offset="1" stop-color="#8a6df5"/>
+      </linearGradient></defs>
+      <rect x="0" y="0" width="24" height="24" rx="5.4" fill="url(#g)"/>
+      <g fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7.5 8.4l1.3 1.5 2.3-2.8"/><path d="M12 8.4h5.2"/>
+        <path d="M12 12h5.2"/><path d="M12 15.6h5.2"/>
+      </g>
+      <g fill="#ffffff"><circle cx="8.6" cy="12" r=".85"/><circle cx="8.6" cy="15.6" r=".85"/></g>
+    </svg>`,
+  },
+];
+
+const SIZES = [128, 64, 32, 16];
+const BGS = [
+  ['白底 #fff', '#ffffff'],
+  ['浅色工具栏 #f1f3f7', '#f1f3f7'],
+  ['深色工具栏 #2b2f36', '#2b2f36'],
+];
+
+const iconAt = (svg, px) => svg.replace('<svg ', `<svg width="${px}" height="${px}" `);
+
+document.getElementById('cards').innerHTML = CANDIDATES.map((c) => `
+  <section class="card">
+    <div class="head">
+      <span class="tag">${c.id}</span>
+      <span class="name">${c.name}</span>
+      ${c.tags.map((t) => `<span class="note" style="margin:0">· ${t}</span>`).join('')}
+    </div>
+    <p class="note">${c.note}</p>
+    <div class="big">
+      <div class="stage">${iconAt(c.svg, 96)}</div>
+      <div class="swatches">${(c.swatches || []).map(([label, svg]) =>
+        `<div class="row"><span class="box">${iconAt(svg, 26)}</span>${label}</div>`).join('')}</div>
+      <div class="swatches">${c.alt ? `<div class="row"><span class="box">${iconAt(c.alt, 26)}</span>蓝色版</div>` : ''}</div>
+    </div>
+    <div class="bgs">
+      ${BGS.map(([label, color]) => `
+        <div class="bgcol">
+          <div style="display:flex;gap:10px;align-items:flex-end">
+            ${SIZES.map((px) => `
+              <div class="col">
+                <div class="tile" style="width:${px + 20}px;height:${px + 20}px;background:${color}">${iconAt(c.svg, px)}</div>
+                <div class="lbl">${px}</div>
+              </div>`).join('')}
+          </div>
+          <div class="bgname">${label}</div>
+        </div>`).join('')}
+    </div>
+  </section>`).join('');
+</script>
+</body>
+</html>

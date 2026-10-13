@@ -197,10 +197,11 @@ test('拖拽任务行调整待办顺序并持久化；跨列表拖拽无效', as
     await tick();
   }
   const rows = [...ctx.root.querySelectorAll<HTMLElement>('.task:not(.done)')];
-  // 只有手柄可拖：整行可拖会抢掉标题的文字选择
+  // 行本身绝不可拖（整行 draggable 会让标题文字没法选中）；可拖的是手柄与右侧空白填充块
   assert.equal(rows[0].getAttribute('draggable'), null);
-  assert.ok(rows[0].querySelector('.grip'));
   assert.equal(rows[0].querySelector('.grip')?.getAttribute('draggable'), 'true');
+  assert.equal(rows[0].querySelector('.t-fill')?.getAttribute('draggable'), 'true');
+  assert.equal(rows[0].querySelector('.t-text')?.getAttribute('draggable'), null);
 
   // jsdom 没有 DragEvent/DataTransfer，手工造一个带 dataTransfer 的普通事件
   const drag = (type: string, target: HTMLElement): void => {

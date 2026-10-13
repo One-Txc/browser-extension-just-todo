@@ -37,3 +37,16 @@ test('auto follows chrome.i18n.getUILanguage when en', () => {
 test('locale key sets are equal', () => {
   assert.deepEqual(Object.keys(en).sort(), Object.keys(zh).sort());
 });
+
+test('extName / extDescription 在商店限制内，且都含 todo 关键词', () => {
+  // Chrome 硬性限制：name <= 75 字符、description <= 132 字符（超了扩展会加载失败）。
+  // 商店没有独立的关键词字段，能被搜到的就是这两段文本，所以两边都要显式带上 todo。
+  for (const [locale, table] of [['zh_CN', zh], ['en', en]] as const) {
+    const extName = table.extName.message;
+    const extDesc = table.extDescription.message;
+    assert.ok(extName.length <= 75, `${locale} extName 超长：${extName.length}`);
+    assert.ok(extDesc.length <= 132, `${locale} extDescription 超长：${extDesc.length}`);
+    assert.match(extName.toLowerCase(), /todo/, `${locale} extName 缺 todo 关键词`);
+    assert.match(extDesc.toLowerCase(), /todo/, `${locale} extDescription 缺 todo 关键词`);
+  }
+});

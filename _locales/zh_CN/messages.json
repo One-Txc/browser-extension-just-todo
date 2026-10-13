@@ -1,6 +1,6 @@
 {
-  "extName": { "message": "待办清单", "description": "扩展名称，显示在商店与扩展管理页" },
-  "extDescription": { "message": "简洁的分组待办、归档与搜索，支持新标签页。", "description": "扩展描述，商店列表用" },
+  "extName": { "message": "Just Todo", "description": "扩展名称，显示在商店与扩展管理页（品牌名，中英统一）" },
+  "extDescription": { "message": "Just Todo —— 简单专注的 todo 待办清单：分组、勾选完成、归档与搜索，数据全在本地，可接管新标签页。", "description": "扩展描述，商店列表用（含 Todo 关键词，<=132 字符）" },
   "appTitle": { "message": "我的待办", "description": "独立页顶部主标题" },
   "tabAll": { "message": "全部", "description": "第一个分组标签，显示所有任务" },
   "ungrouped": { "message": "未分组", "description": "无分组任务与归档项的标签" },
@@ -21,7 +21,7 @@
   "emptyGroup": { "message": "这个分组下还没有任务", "description": "分组标签下空列表" },
   "emptyArchive": { "message": "暂无归档任务", "description": "归档区为空" },
   "emptySearch": { "message": "没有匹配的归档任务", "description": "归档搜索无结果" },
-  "opRename": { "message": "重命名", "description": "任务行重命名按钮提示" },
+  "opRename": { "message": "双击也可进行编辑", "description": "任务行编辑按钮提示（顺带告诉用户标题支持双击编辑）" },
   "opReopen": { "message": "恢复为待办", "description": "已完成任务恢复按钮提示" },
   "opArchive": { "message": "归档", "description": "归档按钮提示" },
   "opDelete": { "message": "删除", "description": "删除按钮提示" },

@@ -1,6 +1,6 @@
 {
-  "extName": { "message": "Todo Just", "description": "Extension name shown in store and extension manager" },
-  "extDescription": { "message": "A simple grouped to-do list with archive and search; can replace the new tab page.", "description": "Extension description for the store listing" },
+  "extName": { "message": "Just Todo", "description": "Extension name shown in store and extension manager" },
+  "extDescription": { "message": "Just Todo — a simple todo list (to-do) with groups, archive and search. All data stays local; can replace the new tab page.", "description": "Extension description for the store listing" },
   "appTitle": { "message": "My Tasks", "description": "Main heading on the standalone page" },
   "tabAll": { "message": "All", "description": "First group tab showing all tasks" },
   "ungrouped": { "message": "No group", "description": "Label for tasks and archive items without a group" },
@@ -21,7 +21,7 @@
   "emptyGroup": { "message": "No tasks in this group yet", "description": "Empty list under a group tab" },
   "emptyArchive": { "message": "Nothing archived yet", "description": "Empty archive area" },
   "emptySearch": { "message": "No archived tasks match", "description": "Archive search with no result" },
-  "opRename": { "message": "Rename", "description": "Task row rename button tooltip" },
+  "opRename": { "message": "You can also double-click to edit", "description": "Task row edit button tooltip (also hints that the title supports double-click editing)" },
   "opReopen": { "message": "Mark as to-do", "description": "Completed task reopen button tooltip" },
   "opArchive": { "message": "Archive", "description": "Archive button tooltip" },
   "opDelete": { "message": "Delete", "description": "Delete button tooltip" },
