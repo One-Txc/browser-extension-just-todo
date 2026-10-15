@@ -1,6 +1,7 @@
 import type { Repo } from '../shared/store.ts';
 import type { TodoSettings } from '../shared/settings.ts';
-import { loadRepo, persistRepo } from '../shared/store.ts';
+import { loadRepo, persistRepo, hasRepoKey } from '../shared/store.ts';
+import { buildSeedRepo } from '../shared/seed.ts';
 import { loadSettings, saveSettings } from '../shared/settings.ts';
 import { loadUiState, saveUiState, reconcileUiState } from '../shared/ui-state.ts';
 
@@ -82,6 +83,12 @@ export async function createContext(root: HTMLElement): Promise<AppContext> {
     },
   };
   await ctx.reload();
+  // 首次安装（storage 里还没有数据键）时播种示例数据，打开就能看到功能演示；
+  // 之后即使把任务全删光也不再播种，避免打扰已上手的老用户
+  if (!(await hasRepoKey())) {
+    ctx.repo = buildSeedRepo();
+    await persistRepo(ctx.repo);
+  }
   // 界面状态只在首次进入时读一次：跨标签页同步（storage.onChanged）不该把当前 Tab 拽走
   const ui = reconcileUiState(await loadUiState(), ctx.repo.groups.map((g) => g.id));
   ctx.currentGroup = ui.currentGroup;

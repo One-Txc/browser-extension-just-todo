@@ -1,0 +1,2900 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>待办清单</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  :root {
+    --primary: #4a9152;
+    --primary-hover: #3d7d44;
+    --primary-light: #eaf5eb;
+    --bg-sand: #f5f0e1;
+    --dock-bg: #fffdf9;
+    --dock-border: #ddd3be;
+    --text-main: #2a302a;
+    --text-muted: #8e8574;
+    --board-grid: rgba(204, 193, 172, 0.45);
+  }
+
+  html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background: var(--bg-sand);
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body:before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.25;
+    background-image: radial-gradient(#c4bca9 0.8px, transparent 0.8px);
+    background-size: 20px 20px;
+    z-index: 0;
+  }
+
+  .app-container {
+    position: relative;
+    z-index: 1;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== 顶部栏 Header ===== */
+  .app-header {
+    height: 70px;
+    flex: 0 0 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px 0 92px;
+    background: rgba(255, 253, 248, 0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1.5px solid var(--dock-border);
+    z-index: 90;
+    box-shadow: 0 2px 10px rgba(90, 75, 45, 0.04);
+  }
+
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .header-titles { display: flex; flex-direction: column; }
+  .eyebrow {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+  }
+  .header-titles h1 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #222922;
+    letter-spacing: -0.4px;
+    outline: none;
+    border-radius: 4px;
+    padding: 1px 4px;
+    margin-left: -4px;
+    cursor: text;
+  }
+  .header-titles p {
+    font-size: 12px;
+    color: var(--text-muted);
+    outline: none;
+    border-radius: 4px;
+    padding: 1px 4px;
+    margin-left: -4px;
+    cursor: text;
+  }
+  .header-titles [contenteditable="true"]:hover { background: rgba(255, 255, 255, 0.7); }
+  .header-titles [contenteditable="true"]:focus { background: #fff; box-shadow: 0 0 0 2px var(--primary); }
+
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .stage-box, .progress-box {
+    background: #fff;
+    border: 1.5px solid var(--dock-border);
+    border-radius: 12px;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 4px rgba(90, 75, 45, 0.03);
+  }
+  .stage-box span, .progress-box span { font-size: 11px; color: var(--text-muted); font-weight: 700; }
+  .stage-box select {
+    border: 0;
+    background: transparent;
+    font-weight: 800;
+    color: #353d35;
+    outline: none;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .stage-edit-btn {
+    border: 0;
+    background: transparent;
+    color: #8e8574;
+    cursor: pointer;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+  }
+  .stage-edit-btn:hover { background: var(--primary-light); color: var(--primary); }
+  .stage-edit-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .progress-box strong { font-size: 13px; color: #2e352e; }
+  .progress-bar-bg {
+    width: 90px;
+    height: 7px;
+    background: #eae3d3;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #6db66c, #4caf50);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+
+  /* 右上角 导入/导出 操作按钮 */
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 4px;
+    padding-left: 12px;
+    border-left: 1.5px dashed var(--dock-border);
+  }
+  .btn-header-action {
+    background: #fff;
+    border: 1.5px solid var(--dock-border);
+    padding: 7px 13px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4a524a;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    box-shadow: 0 2px 4px rgba(90, 75, 45, 0.03);
+  }
+  .btn-header-action svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .btn-header-action:hover {
+    background: var(--primary-light);
+    border-color: #badbbd;
+    color: var(--primary);
+    transform: translateY(-1px);
+  }
+  .btn-header-action:active { transform: translateY(1px); }
+
+  /* ===== 左侧 Dock 栏与伸缩抽屉 ===== */
+  .side-dock {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 68px;
+    background: var(--dock-bg);
+    border-right: 1.5px solid var(--dock-border);
+    border-radius: 0;
+    box-shadow: 2px 0 10px rgba(91, 76, 45, 0.06);
+    z-index: 120;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 6px;
+    gap: 10px;
+  }
+
+  .dock-btn {
+    position: relative;
+    width: 44px;
+    height: 48px;
+    border: 0;
+    border-radius: 14px;
+    background: transparent;
+    color: #726b5e;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    transition: all 0.18s ease;
+  }
+  .dock-btn svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .dock-btn small { font-size: 9px; font-weight: 800; }
+  .dock-btn:hover {
+    background: #ede4d1;
+    color: var(--text-main);
+    transform: translateY(-1px);
+  }
+  .dock-btn.active {
+    background: #e3ebd9;
+    color: var(--primary);
+    box-shadow: inset 0 0 0 1.5px rgba(74, 145, 82, 0.4);
+  }
+  .dock-btn.primary-dock {
+    background: linear-gradient(135deg, #5ba860 0%, #438e47 100%);
+    color: white;
+    box-shadow: 0 4px 10px rgba(67, 142, 71, 0.28);
+  }
+  .dock-btn.primary-dock:hover {
+    background: linear-gradient(135deg, #519b56 0%, #397e3d 100%);
+    transform: translateY(-1px);
+  }
+  .dock-btn b {
+    position: absolute;
+    right: 2px;
+    top: 2px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3px;
+    border-radius: 8px;
+    background: #e58849;
+    color: white;
+    font-size: 8px;
+    line-height: 15px;
+    text-align: center;
+  }
+  .dock-spacer { flex: 1; }
+
+  /* 伸缩抽屉面板 */
+  .side-panel {
+    position: fixed;
+    left: 68px;
+    top: 0;
+    bottom: 0;
+    width: 330px;
+    background: #fffdf9;
+    border-right: 1.5px solid var(--dock-border);
+    border-radius: 0;
+    box-shadow: 2px 0 10px rgba(65, 52, 30, 0.08);
+    z-index: 110;
+    transform: translateX(-430px);
+    transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .side-panel.open {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .side-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px 14px;
+    border-bottom: 1px dashed #ded4be;
+    background: #faf5e8;
+  }
+  .side-panel-title b { font-size: 16px; color: #252b25; display: block; }
+  .side-panel-title span { font-size: 11px; color: var(--text-muted); margin-top: 2px; display: block; }
+  .side-panel-close {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 8px;
+    background: #ebe1cd;
+    color: #666;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.18s;
+  }
+  .side-panel-close svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+  .side-panel-close:hover { background: #ded2ba; color: #111; }
+
+  .side-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .panel-tab-content { display: none; flex-direction: column; gap: 14px; }
+  .panel-tab-content.active { display: flex; }
+
+  .panel-search-box {
+    height: 44px;
+    border: 1.5px solid #dcd3c1;
+    background: #fff;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 8px;
+  }
+  .panel-search-box svg { width: 17px; height: 17px; stroke: #999; fill: none; stroke-width: 2; flex-shrink: 0; }
+  .panel-search-box input {
+    flex: 1;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 13px;
+    color: #333;
+  }
+  .panel-search-box button {
+    border: 0;
+    background: #eee5d3;
+    border-radius: 6px;
+    width: 22px;
+    height: 22px;
+    color: #777;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .panel-search-box button svg { width: 11px; height: 11px; stroke: currentColor; stroke-width: 2.5; }
+
+  .panel-input {
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
+    border: 1.5px solid #dcd3c1;
+    border-radius: 12px;
+    background: #fff;
+    font-size: 13px;
+    outline: none;
+  }
+  .panel-input:focus, .panel-search-box:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(74, 145, 82, 0.14);
+  }
+
+  .btn {
+    padding: 9px 15px;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #4fa055 0%, #3f8844 100%);
+    color: #fff;
+    box-shadow: 0 3px 8px rgba(63, 136, 68, 0.25);
+  }
+  .btn-primary:hover { background: linear-gradient(135deg, #448e4a 0%, #35743a 100%); }
+  .btn-outline {
+    background: #fff;
+    color: #555;
+    border: 1.5px solid #dcd3c1;
+  }
+  .btn-outline:hover { background: #fbf6ec; }
+
+  .template-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 80;
+    width: 220px;
+    background: #fff;
+    border: 1.5px solid #ded4be;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    padding: 6px;
+  }
+  .template-dropdown.open { display: block; }
+  .template-option {
+    width: 100%;
+    text-align: left;
+    border: 0;
+    background: #fff;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #444;
+    font-weight: 600;
+  }
+  .template-option:hover { background: var(--primary-light); color: var(--primary); }
+
+  .panel-section-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    display: block;
+  }
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 6px; }
+  .filter-bar .btn, .sort-bar .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1.5px solid #dcd3c1;
+    color: #666;
+  }
+  .filter-bar .btn.active, .sort-bar .btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+  .sort-bar { display: flex; flex-wrap: wrap; gap: 6px; }
+  .panel-select {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1.5px solid #dcd3c1;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 12px;
+    outline: none;
+  }
+  .panel-tip {
+    font-size: 11px;
+    line-height: 1.5;
+    color: #93897b;
+    background: #f4ecdd;
+    border-radius: 10px;
+    padding: 9px 12px;
+  }
+
+  /* ===== 主画布工作区（无限全覆盖网格） ===== */
+  .board-shell {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .task-board-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    background-color: var(--bg-sand);
+    background-image: 
+      linear-gradient(var(--board-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--board-grid) 1px, transparent 1px);
+    background-size: 36px 36px;
+    background-position: 0px 0px;
+  }
+  .task-board-container:active { cursor: grabbing; }
+
+  .board-canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 0;
+    transform-origin: 0 0;
+    pointer-events: none;
+  }
+
+  .task-list {
+    position: absolute;
+    left: 0;
+    top: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    pointer-events: auto;
+  }
+
+  /* 贴纸卡片 */
+  .sticker-card {
+    position: absolute;
+    width: 290px;
+    min-height: 140px;
+    background: var(--sticker-color);
+    border: 1.2px solid rgba(115, 102, 76, 0.22);
+    border-radius: 4px 6px 8px 4px;
+    box-shadow: 4px 6px 0 rgba(126, 108, 76, 0.12), 0 10px 20px rgba(91, 75, 45, 0.08);
+    transform: rotate(var(--sticker-rotation));
+    transition: box-shadow 0.16s ease;
+    z-index: 2;
+    cursor: default;
+  }
+  .sticker-card:before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -9px;
+    width: 72px;
+    height: 20px;
+    transform: translateX(-50%) rotate(-1.5deg);
+    background: rgba(246, 224, 160, 0.78);
+    box-shadow: 0 1px 2px rgba(120, 100, 60, 0.12);
+    z-index: 4;
+  }
+  .sticker-card:hover {
+    z-index: 25;
+    box-shadow: 6px 12px 0 rgba(126, 108, 76, 0.15), 0 16px 28px rgba(91, 75, 45, 0.14);
+  }
+  .sticker-card.is-dragging {
+    z-index: 60 !important;
+    cursor: grabbing !important;
+    transform: rotate(0deg) scale(1.02) !important;
+    box-shadow: 10px 18px 0 rgba(126, 108, 76, 0.18), 0 22px 36px rgba(91, 75, 45, 0.22) !important;
+    transition: none !important;
+  }
+
+  .task-header {
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px 2px;
+    border-bottom: 1px dashed rgba(120, 105, 77, 0.22);
+  }
+  .sticker-grip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #918774;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+  }
+  .sticker-grip svg { width: 12px; height: 16px; fill: currentColor; }
+  .sticker-grip small { font-size: 9px; font-weight: 800; letter-spacing: 0.5px; }
+
+  .sticker-actions { display: flex; gap: 3px; }
+  .sticker-actions button {
+    width: 24px;
+    height: 24px;
+    border: 0;
+    background: transparent;
+    border-radius: 6px;
+    color: #7b7264;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.65;
+    transition: all 0.18s;
+  }
+  .sticker-actions button svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .sticker-actions button:hover { opacity: 1; background: rgba(255,255,255,0.7); }
+
+  .sticker-body { padding: 10px 12px 12px; }
+  .sticker-title-line { display: flex; align-items: flex-start; gap: 8px; }
+  .check {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    border: 2px solid #a49a88;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: #fff;
+    flex-shrink: 0;
+    transition: 0.18s;
+  }
+  .check svg { width: 11px; height: 11px; stroke: #fff; fill: none; stroke-width: 3; display: none; }
+  .check.checked { background: var(--primary); border-color: var(--primary); }
+  .check.checked svg { display: block; }
+  .sticker-check { margin-top: 2px; }
+
+  .task-title-row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
+  .star-mark { color: #f59e0b; display: inline-flex; }
+  .star-mark svg { width: 14px; height: 14px; fill: currentColor; }
+  .task-title {
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.4;
+    color: #2b302a;
+    outline: none;
+    word-break: break-word;
+    border-radius: 3px;
+  }
+  .task-title:focus { background: rgba(255, 255, 255, 0.65); }
+
+  .expand-icon {
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.5);
+    color: #7b7264;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .expand-icon svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+  .expand-icon:hover { background: rgba(255, 255, 255, 0.85); }
+
+  .sticker-meta {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  .meta-chip {
+    height: 20px;
+    line-height: 20px;
+    font-size: 9px;
+    padding: 0 6px;
+    border-radius: 6px;
+    font-weight: 700;
+    border: 1px solid transparent;
+  }
+  .priority-high { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
+  .priority-medium { background: #fef3c7; color: #d97706; border-color: #fde68a; }
+  .priority-normal { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
+  .type-chip { background: #e0f2fe; color: #0284c7; border-color: #bae6fd; }
+  .due-chip { background: #f3f4f6; color: #6b7280; }
+  .due-chip.today { background: #fef3c7; color: #d97706; border-color: #fde68a; }
+  .due-chip.overdue { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
+
+  .task-progress { margin-left: auto; display: flex; align-items: center; gap: 5px; }
+  .task-progress-bg { width: 40px; height: 5px; border-radius: 3px; background: rgba(0,0,0,0.08); overflow: hidden; }
+  .task-progress-fill { height: 100%; background: #6db66c; border-radius: 3px; }
+  .task-progress-text { font-size: 9px; color: #8c8577; font-weight: 700; }
+
+  /* 子任务列表 */
+  .subtask-list {
+    display: none;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(120, 105, 77, 0.2);
+    list-style: none;
+  }
+  .subtask-list.open { display: block; }
+  .subtask-list { position: relative; }
+  .subtask-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    border-radius: 6px;
+  }
+  .subtask-grip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 15px;
+    flex-shrink: 0;
+    color: #b8ae9c;
+    cursor: grab;
+    touch-action: none;
+    border-radius: 4px;
+  }
+  .subtask-grip:hover { color: var(--primary); }
+  .subtask-grip:active { cursor: grabbing; }
+  .subtask-grip svg { width: 9px; height: 13px; fill: currentColor; }
+  .subtask-title { cursor: text; }
+  .subtask-item.dragging-src { opacity: 0.4; }
+  body.dragging-sub, body.dragging-sub * { user-select: none !important; }
+  .drop-indicator {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    height: 0;
+    border-top: 2.5px dashed var(--primary);
+    pointer-events: none;
+    z-index: 5;
+  }
+  .drop-indicator:before, .drop-indicator:after {
+    content: "";
+    position: absolute;
+    top: -4px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+  .drop-indicator:before { left: -2px; }
+  .drop-indicator:after { right: -2px; }
+  .sticker-card.drop-target {
+    outline: 2.5px dashed var(--primary);
+    outline-offset: 3px;
+  }
+  .subtask-ghost {
+    position: fixed;
+    z-index: 999;
+    background: #fff;
+    border: 1.5px solid var(--primary);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-main);
+    box-shadow: 0 8px 20px rgba(65, 52, 30, 0.25);
+    pointer-events: none;
+    max-width: 240px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .subtask-item .check { width: 14px; height: 14px; border-radius: 3px; }
+  .subtask-item .check svg { width: 8px; height: 8px; stroke-width: 3.5; }
+  .subtask-title {
+    font-size: 11px;
+    color: #4b5249;
+    flex: 1;
+    outline: none;
+    word-break: break-word;
+  }
+  .subtask-title:focus { background: rgba(255, 255, 255, 0.65); }
+  .subtask-item.done .subtask-title { text-decoration: line-through; color: #9c9992; }
+  .subtask-item .del-btn {
+    opacity: 0.3;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .subtask-item .del-btn svg { width: 11px; height: 11px; stroke: #666; stroke-width: 2; }
+  .subtask-item:hover .del-btn { opacity: 1; }
+  .subtask-item:hover .del-btn svg { stroke: #dc2626; }
+  .add-subtask { display: flex; gap: 4px; margin-top: 6px; }
+  .add-subtask input {
+    flex: 1;
+    border: 1px dashed #c8beaa;
+    background: rgba(255, 255, 255, 0.55);
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 10px;
+    outline: none;
+  }
+  .add-subtask .btn { padding: 3px 8px; font-size: 10px; }
+
+  .sticker-card.done { filter: saturate(0.55) opacity(0.72); }
+  .sticker-card.done .task-title { text-decoration: line-through; color: #73776f; }
+
+  /* ===== 右下角 HUD 控制器 ===== */
+  .canvas-hud {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    background: #fffdf9;
+    border: 1.5px solid var(--dock-border);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(91, 76, 45, 0.12);
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    gap: 3px;
+    z-index: 85;
+  }
+  .hud-btn {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: #635d51;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.18s;
+  }
+  .hud-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+  .hud-btn:hover { background: #eee4cf; color: #111; }
+  .hud-zoom-text {
+    font-size: 11px;
+    font-weight: 800;
+    color: #726b5e;
+    min-width: 44px;
+    text-align: center;
+    cursor: pointer;
+  }
+  .hud-hint {
+    padding: 0 8px;
+    font-size: 10px;
+    color: #9e9687;
+    border-left: 1px solid #e0d7c4;
+    user-select: none;
+  }
+
+  /* 历史记录 */
+  .history-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid #e5dcce;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.18s;
+  }
+  .history-item:hover { background: var(--primary-light); border-color: #badbbd; }
+  .history-step {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #eaf5eb;
+    color: var(--primary);
+    font-size: 10px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .history-desc { flex: 1; color: #444; }
+  .history-time { font-size: 10px; color: #aaa; }
+
+  /* 通用弹窗 Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(65, 54, 38, 0.38);
+    backdrop-filter: blur(4px);
+    z-index: 150;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-card {
+    width: 420px;
+    max-width: 100%;
+    background: #fffcf7;
+    border: 1.5px solid var(--dock-border);
+    border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(65, 52, 30, 0.25);
+    padding: 22px;
+  }
+  .modal-card h3 { font-size: 17px; margin-bottom: 16px; color: #212621; }
+  .modal-field { margin-bottom: 12px; }
+  .modal-field label { display: block; font-size: 11px; font-weight: 700; color: #726b5e; margin-bottom: 4px; }
+  .modal-field input, .modal-field select {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1.5px solid #d4cab8;
+    border-radius: 10px;
+    font-size: 13px;
+    outline: none;
+  }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+  /* ===== 阶段管理弹窗样式 ===== */
+  .stage-manage-tip { font-size: 11px; color: #8e8574; margin-bottom: 12px; line-height: 1.6; }
+  .stage-manage-list {
+    max-height: 260px;
+    overflow-y: auto;
+    border: 1.5px solid #e2d8c4;
+    border-radius: 12px;
+    padding: 6px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .stage-row { display: flex; align-items: center; gap: 8px; }
+  .stage-row input {
+    flex: 1;
+    padding: 7px 10px;
+    border: 1.5px solid #d4cab8;
+    border-radius: 8px;
+    font-size: 13px;
+    outline: none;
+    min-width: 0;
+  }
+  .stage-row input:focus { border-color: var(--primary); }
+  .stage-count { font-size: 10px; color: #8e8574; white-space: nowrap; min-width: 54px; text-align: right; }
+  .stage-del-btn {
+    border: 0;
+    background: transparent;
+    color: #b0a795;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .stage-del-btn:hover { background: #fee2e2; color: #dc2626; }
+  .stage-manage-actions { margin-top: 10px; }
+
+  /* ===== 导入方式选择弹窗专用样式 ===== */
+  .import-choice-card { width: 450px; }
+  .import-desc { font-size: 12px; color: #7a7263; margin-bottom: 14px; line-height: 1.5; }
+  .import-options { display: flex; flex-direction: column; gap: 10px; }
+  .import-opt-btn {
+    border: 1.5px solid #dcd3c1;
+    background: #fff;
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .import-opt-btn:hover {
+    background: var(--primary-light);
+    border-color: #aed5b1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(74, 145, 82, 0.12);
+  }
+  .import-opt-btn .opt-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #eaf5eb;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .import-opt-btn .opt-icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+  .import-opt-btn .opt-text b { display: block; font-size: 13px; color: #222922; margin-bottom: 2px; }
+  .import-opt-btn .opt-text span { display: block; font-size: 11px; color: #888070; line-height: 1.4; }
+  
+  .import-opt-btn.danger-opt:hover {
+    background: #fff5f5;
+    border-color: #fcc;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.1);
+  }
+  .import-opt-btn.danger-opt .opt-icon {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  /* 空状态 */
+  .empty-state {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #a49a89;
+    text-align: center;
+    pointer-events: auto;
+    white-space: nowrap;
+  }
+  .empty-state h3, .empty-state p { white-space: nowrap; }
+  .empty-sticker {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff0a9;
+    transform: rotate(-5deg);
+    box-shadow: 3px 5px 0 #d8c88f;
+    font-size: 24px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="app-container">
+  <!-- 顶部栏 -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="header-titles">
+        <span class="eyebrow">GAME TASK CANVAS</span>
+        <h1 id="appTitle" contenteditable="true" spellcheck="false" title="点击修改标题">待办清单</h1>
+        <p id="appSubtitle" contenteditable="true" spellcheck="false" title="点击修改副标题">《游戏项目开发任务》</p>
+      </div>
+    </div>
+    
+    <div class="header-right">
+      <div class="stage-box">
+        <span>项目阶段</span>
+        <select id="stageSelect"></select>
+        <button class="stage-edit-btn" id="stageEditBtn" title="管理阶段（添加 / 重命名 / 删除）">
+          <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </div>
+      
+      <div class="stage-box">
+        <span>任务类型</span>
+        <select id="typeSelect"></select>
+        <button class="stage-edit-btn" id="typeEditBtn" title="管理类型（添加 / 重命名 / 删除）">
+          <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </div>
+      
+      <div class="progress-box">
+        <strong id="progressText">0/0</strong>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+        <span>总完成度</span>
+      </div>
+
+      <!-- 右上角 导入与导出 -->
+      <div class="header-actions">
+        <button class="btn-header-action" id="importBtn" title="导入 JSON 备份">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          导入
+        </button>
+        <button class="btn-header-action" id="exportBtn" title="导出 JSON 备份">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          导出
+        </button>
+        <input type="file" id="importFile" accept=".json,application/json" style="display:none" />
+      </div>
+    </div>
+  </header>
+
+  <!-- 左侧 Dock 工具栏 -->
+  <aside class="side-dock">
+    <button class="dock-btn primary-dock" id="dockBtnAdd" title="新建任务">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <small>新建</small>
+    </button>
+    <button class="dock-btn" id="dockBtnSearch" title="搜索检索">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <small>搜索</small>
+    </button>
+    <button class="dock-btn" id="dockBtnFilter" title="筛选与排序">
+      <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      <small>整理</small>
+    </button>
+    <button class="dock-btn" id="dockBtnHistory" title="操作历史">
+      <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><polyline points="12 7 12 12 15 15"/></svg>
+      <small>历史</small>
+      <b id="historyCount">0</b>
+    </button>
+
+    <div class="dock-spacer"></div>
+
+    <button class="dock-btn" id="dockBtnReset" title="清空全部卡片" style="color:#c55;">
+      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      <small>清空</small>
+    </button>
+  </aside>
+
+  <!-- 左侧伸缩抽屉 -->
+  <section class="side-panel" id="sidePanel">
+    <div class="side-panel-header">
+      <div class="side-panel-title">
+        <b id="sidePanelTitle">新建任务</b>
+        <span id="sidePanelSub">添加你的开发事项与目标</span>
+      </div>
+      <button class="side-panel-close" id="sidePanelCloseBtn">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="side-panel-body">
+      <!-- 选项卡 1：新建任务 -->
+      <div class="panel-tab-content" id="tabAdd">
+        <input class="panel-input" type="text" id="newTaskInput" placeholder="输入任务名称，例如：编写背包系统" />
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-primary" id="addTaskBtn" style="flex:1;">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.5;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            添加卡片
+          </button>
+          <div style="position:relative;">
+            <button class="btn btn-outline" id="templateBtn">模板 ▾</button>
+            <div class="template-dropdown" id="templateDropdown">
+              <button class="template-option" data-template="feature">🎮 游戏核心玩法功能</button>
+              <button class="template-option" data-template="character">🧍 制作游戏主角角色</button>
+              <button class="template-option" data-template="scene">🌳 搭建主关卡场景</button>
+              <button class="template-option" data-template="test">🧪 阶段测试与 Bug 修复</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel-tip">💡 提示：卡片支持自由拖拽，使用<b>鼠标中键</b>或按住空白区域即可平移整块画布。</div>
+      </div>
+
+      <!-- 选项卡 2：搜索检索 -->
+      <div class="panel-tab-content" id="tabSearch">
+        <div class="panel-search-box">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" placeholder="搜索卡片标题、类型或子任务…" />
+          <button id="clearSearchBtn">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div style="font-size:12px; color:#777;" id="searchCountText">输入关键词即时筛选</div>
+        <div class="panel-tip">快捷键：随时按 <b>Ctrl + K</b> 或 <b>Cmd + K</b> 快速定位搜索。</div>
+      </div>
+
+      <!-- 选项卡 3：筛选与整理 -->
+      <div class="panel-tab-content" id="tabFilter">
+        <div>
+          <span class="panel-section-title">任务状态过滤</span>
+          <div class="filter-bar">
+            <button class="btn active" data-filter="all">全部</button>
+            <button class="btn" data-filter="active">未完成</button>
+            <button class="btn" data-filter="done">已完成</button>
+            <button class="btn" data-filter="overdue">已逾期</button>
+            <button class="btn" data-filter="important">高优/重要</button>
+          </div>
+        </div>
+
+        <div>
+          <span class="panel-section-title">排序与排布</span>
+          <div class="sort-bar" id="sortBar">
+            <button class="btn active" data-sort="custom">自由贴纸</button>
+            <button class="btn" data-sort="priority">按优先级</button>
+            <button class="btn" data-sort="time">按创建时间</button>
+            <button class="btn" data-sort="name">按名称</button>
+            <button class="btn" data-sort="due">按截止日期</button>
+          </div>
+        </div>
+
+        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:#666; cursor:pointer;">
+          <input type="checkbox" id="syncSubtasks" checked style="accent-color:var(--primary)" />
+          子任务全部勾选时自动完成主任务
+        </label>
+      </div>
+
+      <!-- 选项卡 4：历史记录 -->
+      <div class="panel-tab-content" id="tabHistory">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="panel-section-title" style="margin:0;">最近 50 次操作记录</span>
+          <button class="btn btn-outline" id="clearHistoryBtn" style="padding:4px 8px; font-size:11px;">清空历史</button>
+        </div>
+        <ul class="history-list" id="historyList"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 工作区画布 -->
+  <main class="board-shell">
+    <div class="task-board-container" id="boardContainer">
+      <div class="board-canvas" id="boardCanvas">
+        <ul class="task-list" id="taskList"></ul>
+      </div>
+      <div class="empty-state" id="emptyState" style="display:none">
+        <div class="empty-sticker">✦</div>
+        <h3 id="emptyTitle" style="font-size:16px; color:#665f52;">工作区暂无任务</h3>
+        <p id="emptyDesc" style="font-size:12px; margin:4px 0 14px; color:#999182;">点击左侧「新建」或右上角「导入」开启项目</p>
+        <button class="btn btn-primary" id="emptyAddBtn">＋ 创建第一个任务</button>
+      </div>
+    </div>
+
+    <!-- 右下角画布 HUD 控制器 -->
+    <div class="canvas-hud">
+      <button class="hud-btn" id="zoomOutBtn" title="缩小">
+        <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <span class="hud-zoom-text" id="zoomLevelText" title="重置为 100%">100%</span>
+      <button class="hud-btn" id="zoomInBtn" title="放大">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="hud-btn" id="zoomResetBtn" title="复位视角">
+        <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      </button>
+      <div class="hud-hint">🖱 中键拖拽 · 滚轮缩放</div>
+    </div>
+  </main>
+</div>
+
+<!-- 导入模式选择弹窗 -->
+<div class="modal-overlay" id="importChoiceOverlay">
+  <div class="modal-card import-choice-card">
+    <h3>选择数据导入方式</h3>
+    <p class="import-desc" id="importFileDesc">检测到有效备份文件，请选择导入到工作区的方式：</p>
+    
+    <div class="import-options">
+      <button class="import-opt-btn" id="importAppendBtn">
+        <div class="opt-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </div>
+        <div class="opt-text">
+          <b>添加导入 (追加合并)</b>
+          <span>保留当前工作区中的所有卡片，将备份中的任务追加添加到画布中</span>
+        </div>
+      </button>
+
+      <button class="import-opt-btn danger-opt" id="importOverwriteBtn">
+        <div class="opt-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+        </div>
+        <div class="opt-text">
+          <b>覆盖导入 (完全替换)</b>
+          <span>清空当前工作区，完全恢复为备份文件中的任务、标题与阶段设置</span>
+        </div>
+      </button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="importCancelBtn">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 任务属性弹窗 -->
+<div class="modal-overlay" id="taskEditorOverlay">
+  <div class="modal-card">
+    <h3>编辑任务属性</h3>
+    <div class="modal-field"><label>任务名称</label><input id="editorTitle" type="text" /></div>
+    <div class="modal-field"><label>所属阶段</label><select id="editorStage"></select></div>
+    <div class="modal-field"><label>优先级</label><select id="editorPriority"><option value="high">高优先级 ★</option><option value="medium">中优先级</option><option value="normal">普通</option></select></div>
+    <div class="modal-field"><label>任务类型</label><select id="editorType"></select></div>
+    <div class="modal-field"><label>截止日期</label><input id="editorDueDate" type="date" /></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="editorCancel">取消</button>
+      <button class="btn btn-primary" id="editorSave">保存修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- 阶段管理弹窗 -->
+<div class="modal-overlay" id="stageManagerOverlay">
+  <div class="modal-card">
+    <h3>管理项目阶段</h3>
+    <p class="stage-manage-tip">选中某阶段时，新建的卡片会自动归入该阶段；切换阶段会隐藏其他阶段的卡片。重命名会同步更新所属卡片；删除阶段前需先移空其中的卡片。</p>
+    <div class="stage-manage-list" id="stageManageList"></div>
+    <div class="stage-manage-actions">
+      <button class="btn btn-outline" id="stageAddBtn">＋ 添加阶段</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="stageManagerCancel">取消</button>
+      <button class="btn btn-primary" id="stageManagerSave">保存修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- 类型管理弹窗 -->
+<div class="modal-overlay" id="typeManagerOverlay">
+  <div class="modal-card">
+    <h3>管理任务类型</h3>
+    <p class="stage-manage-tip">选中某类型时，新建的卡片会自动归入该类型；切换类型会隐藏其他类型的卡片。重命名会同步更新所属卡片；删除类型前需先移空其中的卡片。</p>
+    <div class="stage-manage-list" id="typeManageList"></div>
+    <div class="stage-manage-actions">
+      <button class="btn btn-outline" id="typeAddBtn">＋ 添加类型</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="typeManagerCancel">取消</button>
+      <button class="btn btn-primary" id="typeManagerSave">保存修改</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ============ 数据状态 ============
+var data = [];
+var filter = 'all';
+var sortBy = 'custom';
+var historyStack = [];
+var projectStage = '全部';
+var syncSubtasks = true;
+var searchQuery = '';
+var editorTaskIndex = -1;
+var appTitle = '待办清单';
+var appSubtitle = '《游戏项目开发任务》';
+
+// 阶段列表与拖拽子任务状态
+var DEFAULT_STAGES = ['概念构思', '原型开发', '核心玩法', '内容制作', '测试优化', '发布准备', '已发布'];
+var stageList = DEFAULT_STAGES.slice();
+var lastStage = '概念构思';
+// 任务类型列表（与阶段同构）
+var DEFAULT_TYPES = ['程序', '美术', '策划', '音频', '测试', '发布'];
+var typeList = DEFAULT_TYPES.slice();
+var lastType = '策划';
+var projectType = '全部';
+var dragSub = null;
+
+// 待处理的导入数据缓存
+var pendingImportPayload = null;
+
+// 画布平移缩放
+var zoom = 1.0;
+var panX = 60;
+var panY = 40;
+var isPanning = false;
+var panStartX = 0, panStartY = 0;
+var startPanX = 0, startPanY = 0;
+
+// 当前激活的侧边抽屉
+var activeTab = null;
+
+// ============ 本地配置 ============
+function loadLocalConfig() {
+  try {
+    var t = localStorage.getItem('course_todo_title');
+    var s = localStorage.getItem('course_todo_subtitle');
+    if (t) appTitle = t;
+    if (s) appSubtitle = s;
+    var savedStages = null;
+    try { savedStages = JSON.parse(localStorage.getItem('course_todo_stages')); } catch(e2) {}
+    if (Array.isArray(savedStages)) {
+      var clean = savedStages.filter(function(x){ return typeof x === 'string' && x.trim(); });
+      if (clean.length) stageList = clean;
+    }
+    projectStage = localStorage.getItem('course_todo_stage') || '全部';
+    if (projectStage !== '全部' && stageList.indexOf(projectStage) === -1) projectStage = '全部';
+    lastStage = localStorage.getItem('course_todo_last_stage') || stageList[0] || '概念构思';
+    if (stageList.indexOf(lastStage) === -1) lastStage = stageList[0] || '概念构思';
+    var savedTypes = localStorage.getItem('course_todo_types');
+    if (savedTypes) {
+      try {
+        var clearTypes = JSON.parse(savedTypes);
+        if (Array.isArray(clearTypes)) {
+          var c2 = clearTypes.filter(function(x){ return typeof x === 'string' && x.trim(); });
+          if (c2.length) typeList = c2;
+        }
+      } catch(e2) {}
+    }
+    projectType = localStorage.getItem('course_todo_type') || '全部';
+    if (projectType !== '全部' && typeList.indexOf(projectType) === -1) projectType = '全部';
+    lastType = localStorage.getItem('course_todo_last_type') || typeList[0] || '策划';
+    if (typeList.indexOf(lastType) === -1) lastType = typeList[0] || '策划';
+    syncSubtasks = localStorage.getItem('course_todo_sync') !== 'false';
+  } catch(e) {}
+}
+
+function saveLocalConfig() {
+  try {
+    localStorage.setItem('course_todo_title', appTitle);
+    localStorage.setItem('course_todo_subtitle', appSubtitle);
+    localStorage.setItem('course_todo_stage', projectStage);
+    localStorage.setItem('course_todo_stages', JSON.stringify(stageList));
+    localStorage.setItem('course_todo_last_stage', lastStage);
+    localStorage.setItem('course_todo_type', projectType);
+    localStorage.setItem('course_todo_types', JSON.stringify(typeList));
+    localStorage.setItem('course_todo_last_type', lastType);
+    localStorage.setItem('course_todo_sync', syncSubtasks ? 'true' : 'false');
+  } catch(e) {}
+}
+
+function refreshStageSelect() {
+  var sel = document.getElementById('stageSelect');
+  sel.innerHTML = '';
+  ['全部'].concat(stageList).forEach(function(name) {
+    var opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  sel.value = (projectStage === '全部' || stageList.indexOf(projectStage) !== -1) ? projectStage : '全部';
+}
+
+function refreshTypeSelect() {
+  var sel = document.getElementById('typeSelect');
+  if (!sel) return;
+  sel.innerHTML = '';
+  ['全部'].concat(typeList).forEach(function(name) {
+    var opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  sel.value = (projectType === '全部' || typeList.indexOf(projectType) !== -1) ? projectType : '全部';
+}
+
+function applyTitleUI() {
+  document.getElementById('appTitle').textContent = appTitle;
+  document.getElementById('appSubtitle').textContent = appSubtitle;
+  document.title = appTitle;
+}
+
+function initTitleEdit() {
+  var titleEl = document.getElementById('appTitle');
+  var subEl = document.getElementById('appSubtitle');
+  titleEl.addEventListener('blur', function() {
+    var t = titleEl.textContent.trim();
+    if (t && t !== appTitle) { recordHistory('修改主标题'); appTitle = t; saveLocalConfig(); document.title = appTitle; }
+  });
+  subEl.addEventListener('blur', function() {
+    var s = subEl.textContent.trim();
+    if (s && s !== appSubtitle) { recordHistory('修改副标题'); appSubtitle = s; saveLocalConfig(); }
+  });
+  titleEl.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); } });
+  subEl.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); subEl.blur(); } });
+}
+
+function normalizeTask(t, i) {
+  if (!t || typeof t !== 'object') t = {};
+  if (typeof t.title !== 'string') t.title = '未命名任务';
+  if (t.done === undefined) t.done = false;
+  if (t.expanded === undefined) t.expanded = false;
+  if (!Array.isArray(t.subtasks)) t.subtasks = [];
+  if (!t.createdAt) t.createdAt = new Date(Date.now() - (i + 1) * 1000).toISOString();
+  if (typeof t.stage !== 'string' || !t.stage) t.stage = lastStage;
+  if (!t.priority || !['high','medium','normal'].includes(t.priority)) t.priority = 'normal';
+  if (!t.type) t.type = lastType;
+  if (t.dueDate === undefined) t.dueDate = '';
+  
+  if (typeof t.x !== 'number' || isNaN(t.x) || t.x < 100) {
+    t.x = 100 + ((i || 0) % 4) * 330;
+  }
+  if (typeof t.y !== 'number' || isNaN(t.y) || t.y < 80) {
+    t.y = 80 + Math.floor((i || 0) / 4) * 260;
+  }
+  if (typeof t.rotation !== 'number') {
+    t.rotation = [-1.4, 0.8, -0.6, 1.2, -0.4][(i || 0) % 5];
+  }
+  t.subtasks.forEach(function(s) {
+    if (s.done === undefined) s.done = false;
+    if (typeof s.title !== 'string') s.title = '未命名子任务';
+  });
+  return t;
+}
+
+function loadData() {
+  try {
+    var saved = localStorage.getItem('course_todo_data');
+    data = saved ? JSON.parse(saved) : [];
+  } catch(e) { data = []; }
+  data = data.map(normalizeTask);
+}
+
+function saveData() {
+  localStorage.setItem('course_todo_data', JSON.stringify(data));
+}
+
+function snapshot() { return JSON.stringify(data); }
+
+function recordHistory(msg) {
+  var now = new Date();
+  var timeStr = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2) + ':' + ('0'+now.getSeconds()).slice(-2);
+  historyStack.push({ state: snapshot(), message: msg, time: timeStr });
+  if (historyStack.length > 50) historyStack.shift();
+  updateHistoryUI();
+}
+
+function updateHistoryUI() {
+  document.getElementById('historyCount').textContent = historyStack.length;
+  var list = document.getElementById('historyList');
+  list.innerHTML = '';
+  if (!historyStack.length) {
+    list.innerHTML = '<li style="text-align:center; padding:20px; color:#aaa; font-size:12px;">暂无操作记录</li>';
+    return;
+  }
+  historyStack.slice().reverse().forEach(function(item, idx) {
+    var realIdx = historyStack.length - 1 - idx;
+    var li = document.createElement('li');
+    li.className = 'history-item';
+    li.innerHTML = '<span class="history-step">' + (realIdx + 1) + '</span>' +
+                   '<span class="history-desc">' + escapeHtml(item.message) + '</span>' +
+                   '<span class="history-time">' + item.time + '</span>';
+    li.onclick = function() {
+      data = JSON.parse(historyStack[realIdx].state).map(normalizeTask);
+      saveData();
+      render();
+    };
+    list.appendChild(li);
+  });
+}
+
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ============ 导入与导出 ============
+function exportData() {
+  var payload = {
+    app: 'game-todo-canvas',
+    version: 4,
+    title: appTitle,
+    subtitle: appSubtitle,
+    projectStage: projectStage,
+    stages: stageList,
+    projectType: projectType,
+    types: typeList,
+    syncSubtasks: syncSubtasks,
+    exportedAt: new Date().toISOString(),
+    data: data
+  };
+  var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  var d = new Date();
+  var stamp = d.getFullYear() + ('0'+(d.getMonth()+1)).slice(-2) + ('0'+d.getDate()).slice(-2);
+  a.href = url;
+  a.download = '任务清单备份_' + stamp + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function handleFileSelect(fileInput) {
+  var file = fileInput.files && fileInput.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      var payload = JSON.parse(ev.target.result);
+      if (!payload || !Array.isArray(payload.data)) {
+        alert('导入失败：文件格式不规范，缺少任务数据列表。');
+        return;
+      }
+      pendingImportPayload = payload;
+      showImportChoiceModal(payload);
+    } catch(err) {
+      alert('解析文件出错，请选择合法的 JSON 备份文件。');
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function showImportChoiceModal(payload) {
+  var count = payload.data ? payload.data.length : 0;
+  var desc = '检测到备份文件包含 <b>' + count + '</b> 个任务卡片（导出于 ' + (payload.exportedAt ? payload.exportedAt.slice(0,10) : '未知时间') + '）。';
+  document.getElementById('importFileDesc').innerHTML = desc;
+  document.getElementById('importChoiceOverlay').classList.add('open');
+}
+
+function closeImportChoiceModal() {
+  pendingImportPayload = null;
+  document.getElementById('importChoiceOverlay').classList.remove('open');
+  document.getElementById('importFile').value = '';
+}
+
+// 执行：覆盖导入
+function executeOverwriteImport() {
+  if (!pendingImportPayload) return;
+  var payload = pendingImportPayload;
+  
+  recordHistory('覆盖导入备份数据');
+  
+  if (typeof payload.title === 'string') appTitle = payload.title;
+  if (typeof payload.subtitle === 'string') appSubtitle = payload.subtitle;
+  if (Array.isArray(payload.stages) && payload.stages.length) {
+    var cleanStages = payload.stages.filter(function(x){ return typeof x === 'string' && x.trim(); });
+    if (cleanStages.length) stageList = cleanStages;
+  }
+  if (typeof payload.projectStage === 'string') projectStage = payload.projectStage;
+  if (projectStage !== '全部' && stageList.indexOf(projectStage) === -1) projectStage = '全部';
+  if (stageList.indexOf(lastStage) === -1) lastStage = stageList[0] || '概念构思';
+  if (Array.isArray(payload.types) && payload.types.length) {
+    var cleanTypes = payload.types.filter(function(x){ return typeof x === 'string' && x.trim(); });
+    if (cleanTypes.length) typeList = cleanTypes;
+  }
+  if (typeof payload.projectType === 'string') projectType = payload.projectType;
+  if (projectType !== '全部' && typeList.indexOf(projectType) === -1) projectType = '全部';
+  if (typeList.indexOf(lastType) === -1) lastType = typeList[0] || '策划';
+  if (typeof payload.syncSubtasks === 'boolean') {
+    syncSubtasks = payload.syncSubtasks;
+    document.getElementById('syncSubtasks').checked = syncSubtasks;
+  }
+  saveLocalConfig();
+  applyTitleUI();
+
+  data = payload.data.map(normalizeTask);
+  data.forEach(function(t) {
+    if (t.stage && stageList.indexOf(t.stage) === -1) stageList.push(t.stage);
+    if (t.type && typeList.indexOf(t.type) === -1) typeList.push(t.type);
+  });
+  saveLocalConfig();
+  refreshStageSelect();
+  refreshTypeSelect();
+  saveData();
+  render();
+  
+  var count = data.length;
+  closeImportChoiceModal();
+  alert('覆盖导入成功！已完全恢复为 ' + count + ' 个任务卡片。');
+}
+
+// 执行：追加导入
+function executeAppendImport() {
+  if (!pendingImportPayload) return;
+  var payload = pendingImportPayload;
+  var incomingTasks = payload.data;
+  if (!incomingTasks.length) {
+    alert('备份文件中没有可添加的任务。');
+    closeImportChoiceModal();
+    return;
+  }
+
+  recordHistory('追加导入 ' + incomingTasks.length + ' 个任务');
+
+  incomingTasks.forEach(function(t) {
+    if (t && typeof t.stage === 'string' && t.stage && stageList.indexOf(t.stage) === -1) {
+      stageList.push(t.stage);
+    }
+    if (t && typeof t.type === 'string' && t.type && typeList.indexOf(t.type) === -1) {
+      typeList.push(t.type);
+    }
+  });
+
+  var currentTotal = data.length;
+  var newNormalized = incomingTasks.map(function(t, i) {
+    var item = normalizeTask(t, currentTotal + i);
+    // 错开位置，避免与已有卡片完全重叠
+    item.x += 40 + ((i % 3) * 30);
+    item.y += 30 + (Math.floor(i / 3) * 30);
+    return item;
+  });
+
+  data = data.concat(newNormalized);
+  saveLocalConfig();
+  refreshStageSelect();
+  refreshTypeSelect();
+  saveData();
+  render();
+
+  closeImportChoiceModal();
+  alert('追加导入成功！已新增 ' + incomingTasks.length + ' 个任务卡片（当前共 ' + data.length + ' 个）。');
+}
+
+// ============ 阶段管理弹窗 ============
+function openStageManager() {
+  renderStageManageList();
+  document.getElementById('stageManagerOverlay').classList.add('open');
+}
+
+function closeStageManager() {
+  document.getElementById('stageManagerOverlay').classList.remove('open');
+}
+
+function renderStageManageList() {
+  var wrap = document.getElementById('stageManageList');
+  wrap.innerHTML = '';
+  stageList.forEach(function(name) {
+    appendStageRow(wrap, name, data.filter(function(t){ return t.stage === name; }).length);
+  });
+}
+
+function appendStageRow(wrap, name, count) {
+  var row = document.createElement('div');
+  row.className = 'stage-row';
+
+  var inp = document.createElement('input');
+  inp.type = 'text';
+  inp.value = name;
+  inp.dataset.orig = name;
+  if (!name) inp.placeholder = '输入新阶段名称';
+
+  var cnt = document.createElement('span');
+  cnt.className = 'stage-count';
+  cnt.textContent = name ? (count + ' 张卡片') : '新阶段';
+
+  var del = document.createElement('button');
+  del.className = 'stage-del-btn';
+  del.innerHTML = '✕';
+  del.title = '删除该阶段';
+  del.onclick = function() {
+    if (name) {
+      if (count > 0) {
+        alert('阶段「' + name + '」下还有 ' + count + ' 张卡片，请先删除或将它们改为其他阶段。');
+        return;
+      }
+      if (wrap.querySelectorAll('.stage-row').length <= 1) {
+        alert('至少需要保留一个阶段。');
+        return;
+      }
+    }
+    row.remove();
+  };
+
+  row.appendChild(inp);
+  row.appendChild(cnt);
+  row.appendChild(del);
+  wrap.appendChild(row);
+  return inp;
+}
+
+function saveStageManager() {
+  var rows = document.querySelectorAll('#stageManageList .stage-row');
+  var names = [];
+  var renameMap = {};
+  var seen = {};
+  for (var i = 0; i < rows.length; i++) {
+    var inp = rows[i].querySelector('input');
+    var name = inp.value.trim();
+    var orig = inp.dataset.orig;
+    if (!name) { alert('阶段名称不能为空。'); inp.focus(); return; }
+    if (name === '全部') { alert('「全部」为系统保留名称，请换一个。'); inp.focus(); return; }
+    if (seen[name]) { alert('阶段名称重复：「' + name + '」。'); inp.focus(); return; }
+    seen[name] = true;
+    names.push(name);
+    if (orig && orig !== name) renameMap[orig] = name;
+  }
+  if (!names.length) { alert('至少需要保留一个阶段。'); return; }
+
+  var renames = [];
+  Object.keys(renameMap).forEach(function(oldName) {
+    renames.push({ from: oldName, to: renameMap[oldName] });
+  });
+  var toRename = data.filter(function(t) { return renameMap[t.stage]; });
+  toRename.forEach(function(t) { t.stage = renameMap[t.stage]; });
+  var oldProjectStage = projectStage;
+  var oldLastStage = lastStage;
+  renames.forEach(function(r) {
+    if (oldProjectStage === r.from) projectStage = r.to;
+    if (oldLastStage === r.from) lastStage = r.to;
+  });
+
+  stageList = names;
+  if (projectStage !== '全部' && stageList.indexOf(projectStage) === -1) projectStage = '全部';
+  if (stageList.indexOf(lastStage) === -1) lastStage = stageList[0];
+
+  saveLocalConfig();
+  saveData();
+  refreshStageSelect();
+  render();
+  closeStageManager();
+  recordHistory('更新阶段列表');
+}
+
+// ============ 类型管理弹窗（与阶段同构） ============
+function openTypeManager() {
+  renderTypeManageList();
+  document.getElementById('typeManagerOverlay').classList.add('open');
+}
+
+function closeTypeManager() {
+  document.getElementById('typeManagerOverlay').classList.remove('open');
+}
+
+function renderTypeManageList() {
+  var wrap = document.getElementById('typeManageList');
+  wrap.innerHTML = '';
+  typeList.forEach(function(name) {
+    appendTypeRow(wrap, name, data.filter(function(t){ return t.type === name; }).length);
+  });
+}
+
+function appendTypeRow(wrap, name, count) {
+  var row = document.createElement('div');
+  row.className = 'stage-row';
+
+  var inp = document.createElement('input');
+  inp.type = 'text';
+  inp.value = name;
+  inp.dataset.orig = name;
+  if (!name) inp.placeholder = '输入新类型名称';
+
+  var cnt = document.createElement('span');
+  cnt.className = 'stage-count';
+  cnt.textContent = name ? (count + ' 张卡片') : '新类型';
+
+  var del = document.createElement('button');
+  del.className = 'stage-del-btn';
+  del.innerHTML = '✕';
+  del.title = '删除该类型';
+  del.onclick = function() {
+    if (name) {
+      if (count > 0) {
+        alert('类型「' + name + '」下还有 ' + count + ' 张卡片，请先删除或将它们改为其他类型。');
+        return;
+      }
+      if (wrap.querySelectorAll('.stage-row').length <= 1) {
+        alert('至少需要保留一个类型。');
+        return;
+      }
+    }
+    row.remove();
+  };
+
+  row.appendChild(inp);
+  row.appendChild(cnt);
+  row.appendChild(del);
+  wrap.appendChild(row);
+  return inp;
+}
+
+function saveTypeManager() {
+  var rows = document.querySelectorAll('#typeManageList .stage-row');
+  var names = [];
+  var renameMap = {};
+  var seen = {};
+  for (var i = 0; i < rows.length; i++) {
+    var inp = rows[i].querySelector('input');
+    var name = inp.value.trim();
+    var orig = inp.dataset.orig;
+    if (!name) { alert('类型名称不能为空。'); inp.focus(); return; }
+    if (name === '全部') { alert('「全部」为系统保留名称，请换一个。'); inp.focus(); return; }
+    if (seen[name]) { alert('类型名称重复：「' + name + '」。'); inp.focus(); return; }
+    seen[name] = true;
+    names.push(name);
+    if (orig && orig !== name) renameMap[orig] = name;
+  }
+  if (!names.length) { alert('至少需要保留一个类型。'); return; }
+
+  var renames = [];
+  Object.keys(renameMap).forEach(function(oldName) {
+    renames.push({ from: oldName, to: renameMap[oldName] });
+  });
+  var toRename = data.filter(function(t) { return renameMap[t.type]; });
+  toRename.forEach(function(t) { t.type = renameMap[t.type]; });
+  var oldProjectType = projectType;
+  var oldLastType = lastType;
+  renames.forEach(function(r) {
+    if (oldProjectType === r.from) projectType = r.to;
+    if (oldLastType === r.from) lastType = r.to;
+  });
+
+  typeList = names;
+  if (projectType !== '全部' && typeList.indexOf(projectType) === -1) projectType = '全部';
+  if (typeList.indexOf(lastType) === -1) lastType = typeList[0];
+
+  saveLocalConfig();
+  saveData();
+  refreshTypeSelect();
+  render();
+  closeTypeManager();
+  recordHistory('更新类型列表');
+}
+
+// ============ 画布缩放、平移与无限网格同步 ============
+function applyCanvasTransform() {
+  var canvas = document.getElementById('boardCanvas');
+  canvas.style.transform = 'translate(' + panX + 'px, ' + panY + 'px) scale(' + zoom + ')';
+  
+  var container = document.getElementById('boardContainer');
+  var baseGrid = 36 * zoom;
+  var offsetX = ((panX % baseGrid) + baseGrid) % baseGrid;
+  var offsetY = ((panY % baseGrid) + baseGrid) % baseGrid;
+  container.style.backgroundSize = baseGrid + 'px ' + baseGrid + 'px';
+  container.style.backgroundPosition = offsetX + 'px ' + offsetY + 'px';
+
+  document.getElementById('zoomLevelText').textContent = Math.round(zoom * 100) + '%';
+}
+
+function initCanvasPanZoom() {
+  var container = document.getElementById('boardContainer');
+
+  // 滚轮缩放
+  container.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    var rect = container.getBoundingClientRect();
+    var mouseX = e.clientX - rect.left;
+    var mouseY = e.clientY - rect.top;
+
+    var factor = e.deltaY < 0 ? 1.08 : 0.92;
+    var newZoom = Math.min(Math.max(zoom * factor, 0.3), 2.5);
+
+    panX = mouseX - (mouseX - panX) * (newZoom / zoom);
+    panY = mouseY - (mouseY - panY) * (newZoom / zoom);
+    zoom = newZoom;
+    applyCanvasTransform();
+  }, { passive: false });
+
+  // 鼠标中键拖拽 或 按住画布空白处拖拽平移
+  container.addEventListener('mousedown', function(e) {
+    var isMiddle = (e.button === 1);
+    var isBlank = (e.button === 0 && (e.target === container || e.target.id === 'boardCanvas' || e.target.id === 'taskList'));
+    if (isMiddle || isBlank) {
+      e.preventDefault();
+      isPanning = true;
+      panStartX = e.clientX;
+      panStartY = e.clientY;
+      startPanX = panX;
+      startPanY = panY;
+    }
+  });
+
+  window.addEventListener('mousemove', function(e) {
+    if (!isPanning) return;
+    panX = startPanX + (e.clientX - panStartX);
+    panY = startPanY + (e.clientY - panStartY);
+    applyCanvasTransform();
+  });
+
+  window.addEventListener('mouseup', function(e) {
+    if (isPanning) isPanning = false;
+  });
+
+  // HUD 控制按钮
+  document.getElementById('zoomInBtn').onclick = function() {
+    zoom = Math.min(zoom * 1.15, 2.5);
+    applyCanvasTransform();
+  };
+  document.getElementById('zoomOutBtn').onclick = function() {
+    zoom = Math.max(zoom * 0.85, 0.3);
+    applyCanvasTransform();
+  };
+  document.getElementById('zoomResetBtn').onclick = function() {
+    zoom = 1.0;
+    panX = 60;
+    panY = 40;
+    applyCanvasTransform();
+  };
+  document.getElementById('zoomLevelText').onclick = function() {
+    zoom = 1.0;
+    applyCanvasTransform();
+  };
+}
+
+// ============ 左侧伸缩抽屉逻辑 ============
+function switchSidePanel(tabName) {
+  var panel = document.getElementById('sidePanel');
+  
+  if (activeTab === tabName && panel.classList.contains('open')) {
+    closeSidePanel();
+    return;
+  }
+
+  activeTab = tabName;
+  panel.classList.add('open');
+
+  document.querySelectorAll('.side-dock .dock-btn').forEach(function(b) { b.classList.remove('active'); });
+  var activeBtn = document.getElementById('dockBtn' + capitalize(tabName));
+  if (activeBtn) activeBtn.classList.add('active');
+
+  document.querySelectorAll('.panel-tab-content').forEach(function(el) { el.classList.remove('active'); });
+
+  var titles = {
+    add: ['新建任务', '添加你的开发事项与目标'],
+    search: ['搜索检索', '快速查找卡片与内容'],
+    filter: ['筛选与排序', '整理工作区卡片排布'],
+    history: ['操作历史', '可一键回溯到任意历史状态']
+  };
+
+  var targetContent = document.getElementById('tab' + capitalize(tabName));
+  if (targetContent) targetContent.classList.add('active');
+
+  if (titles[tabName]) {
+    document.getElementById('sidePanelTitle').textContent = titles[tabName][0];
+    document.getElementById('sidePanelSub').textContent = titles[tabName][1];
+  }
+
+  if (tabName === 'add') setTimeout(function(){ document.getElementById('newTaskInput').focus(); }, 80);
+  if (tabName === 'search') setTimeout(function(){ document.getElementById('searchInput').focus(); }, 80);
+}
+
+function closeSidePanel() {
+  activeTab = null;
+  document.getElementById('sidePanel').classList.remove('open');
+  document.querySelectorAll('.side-dock .dock-btn').forEach(function(b) { b.classList.remove('active'); });
+}
+
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// ============ 精准防抖拖动卡片 ============
+function initCardDrag(handle, card, task) {
+  handle.addEventListener('pointerdown', function(e) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    // 点击卡片把手时若左侧抽屉处于打开状态，自动收起
+    if (activeTab !== null) closeSidePanel();
+
+    var startClientX = e.clientX;
+    var startClientY = e.clientY;
+    var startTaskX = (typeof task.x === 'number') ? task.x : (parseFloat(card.style.left) || 100);
+    var startTaskY = (typeof task.y === 'number') ? task.y : (parseFloat(card.style.top) || 80);
+    var hasMoved = false;
+
+    card.classList.add('is-dragging');
+    if (handle.setPointerCapture) {
+      try { handle.setPointerCapture(e.pointerId); } catch(err){}
+    }
+
+    function onPointerMove(ev) {
+      var dx = (ev.clientX - startClientX) / zoom;
+      var dy = (ev.clientY - startClientY) / zoom;
+      if (Math.abs(dx) + Math.abs(dy) > 2) hasMoved = true;
+      task.x = startTaskX + dx;
+      task.y = startTaskY + dy;
+      card.style.left = task.x + 'px';
+      card.style.top = task.y + 'px';
+    }
+
+    function onPointerUp(ev) {
+      handle.removeEventListener('pointermove', onPointerMove);
+      handle.removeEventListener('pointerup', onPointerUp);
+      handle.removeEventListener('pointercancel', onPointerUp);
+      card.classList.remove('is-dragging');
+      if (hasMoved) {
+        saveData();
+        recordHistory('移动卡片：' + task.title);
+      }
+    }
+
+    handle.addEventListener('pointermove', onPointerMove);
+    handle.addEventListener('pointerup', onPointerUp);
+    handle.addEventListener('pointercancel', onPointerUp);
+  });
+}
+
+// ============ 子任务拖拽（卡片间移动 + 卡片内排序） ============
+var dropIndicator = null;
+
+function getDropIndicator() {
+  if (!dropIndicator) {
+    dropIndicator = document.createElement('li');
+    dropIndicator.className = 'drop-indicator';
+  }
+  return dropIndicator;
+}
+
+function clearDropIndicator() {
+  if (dropIndicator && dropIndicator.parentNode) dropIndicator.parentNode.removeChild(dropIndicator);
+}
+
+// 计算插入位置：以全部子项的视觉中点判断目标行，索引按"排除源项后"的序列换算
+function computeDropPosition(subListEl, clientY, srcLi) {
+  var items = subListEl.querySelectorAll('.subtask-item');
+  var total = 0;
+  for (var t = 0; t < items.length; t++) {
+    if (items[t] !== srcLi) total++;
+  }
+
+  // 目标卡片子任务列表处于收起状态时，视作插入到末尾
+  if (subListEl.offsetHeight === 0) {
+    return { index: total, refEl: null, last: null };
+  }
+
+  var nonSrcBefore = 0;
+  var refEl = null;
+  for (var j = 0; j < items.length; j++) {
+    var it = items[j];
+    var rect = it.getBoundingClientRect();
+    if (clientY < rect.top + rect.height / 2) {
+      refEl = it;
+      break;
+    }
+    if (it !== srcLi) nonSrcBefore++;
+  }
+
+  return {
+    index: refEl ? nonSrcBefore : total,
+    refEl: refEl,
+    last: items.length ? items[items.length - 1] : null
+  };
+}
+
+function showDropIndicator(subListEl, pos) {
+  var ind = getDropIndicator();
+  subListEl.appendChild(ind);
+  var topPos;
+  if (pos.refEl) {
+    topPos = pos.refEl.offsetTop - 4;
+  } else if (pos.last) {
+    topPos = pos.last.offsetTop + pos.last.offsetHeight + 4;
+  } else {
+    topPos = 5;
+  }
+  ind.style.top = topPos + 'px';
+}
+
+function initSubtaskDrag(grip, subLi, task, sub, si) {
+  grip.addEventListener('pointerdown', function(e) {
+    if (e.button !== 0) return;
+
+    var startX = e.clientX;
+    var startY = e.clientY;
+    var started = false;
+    var ghost = null;
+    var targetCard = null;
+    var dropIndex = 0;
+
+    function onMove(ev) {
+      var dx = ev.clientX - startX;
+      var dy = ev.clientY - startY;
+      if (!started && Math.abs(dx) + Math.abs(dy) > 5) {
+        started = true;
+        dragSub = { fromTask: task, fromIndex: si, title: sub.title, srcLi: subLi };
+        try { window.getSelection().removeAllRanges(); } catch(err) {}
+        if (document.activeElement && subLi.contains(document.activeElement)) document.activeElement.blur();
+        document.body.classList.add('dragging-sub');
+        subLi.classList.add('dragging-src');
+        ghost = document.createElement('div');
+        ghost.className = 'subtask-ghost';
+        ghost.textContent = sub.title;
+        document.body.appendChild(ghost);
+      }
+      if (!started) return;
+      ev.preventDefault();
+      ghost.style.left = (ev.clientX + 12) + 'px';
+      ghost.style.top = (ev.clientY + 10) + 'px';
+
+      if (targetCard) targetCard.classList.remove('drop-target');
+      targetCard = null;
+      clearDropIndicator();
+
+      var el = document.elementFromPoint(ev.clientX, ev.clientY);
+      var card = el ? el.closest('.sticker-card') : null;
+      if (card) {
+        targetCard = card;
+        card.classList.add('drop-target');
+        var subListEl = card.querySelector('.subtask-list');
+        if (subListEl) {
+          var pos = computeDropPosition(subListEl, ev.clientY, dragSub.srcLi);
+          dropIndex = pos.index;
+          showDropIndicator(subListEl, pos);
+        }
+      }
+    }
+
+    function onUp(ev) {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      if (!started) return;
+      var card = targetCard;
+      var idx = dropIndex;
+      if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
+      document.body.classList.remove('dragging-sub');
+      subLi.classList.remove('dragging-src');
+      clearDropIndicator();
+      targetCard = null;
+      if (card) {
+        card.classList.remove('drop-target');
+        handleSubtaskDrop(card, idx);
+      }
+      dragSub = null;
+    }
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  });
+}
+
+function handleSubtaskDrop(targetCard, insertIndex) {
+  if (!dragSub) return;
+  var idx = parseInt(targetCard.dataset.taskIndex, 10);
+  var toTask = data[idx];
+  var from = dragSub.fromTask;
+  if (!toTask) return;
+  if (dragSub.fromIndex < 0 || dragSub.fromIndex >= from.subtasks.length) return;
+  if (insertIndex < 0) insertIndex = 0;
+
+  var sameCard = (toTask === from);
+  // 拖回原位：无变化
+  if (sameCard && insertIndex === dragSub.fromIndex) return;
+
+  var moved = from.subtasks.splice(dragSub.fromIndex, 1)[0];
+  if (sameCard) {
+    // 移除源项后，位于源项之后的插入位置索引需前移 1 才能落到视觉上的目标行
+    var ins = (insertIndex > dragSub.fromIndex) ? insertIndex - 1 : insertIndex;
+    if (ins > from.subtasks.length) ins = from.subtasks.length;
+    from.subtasks.splice(ins, 0, moved);
+    saveData();
+    render();
+    recordHistory('调整子项顺序：' + moved.title);
+    return;
+  }
+
+  if (insertIndex > toTask.subtasks.length) insertIndex = toTask.subtasks.length;
+  toTask.subtasks.splice(insertIndex, 0, moved);
+  toTask.expanded = true;
+  if (syncSubtasks) {
+    if (from.subtasks.length > 0) from.done = from.subtasks.every(function(s){ return s.done; });
+    if (toTask.subtasks.length > 0) toTask.done = toTask.subtasks.every(function(s){ return s.done; });
+  }
+  saveData();
+  render();
+  recordHistory('移动子项「' + moved.title + '」到「' + toTask.title + '」');
+}
+
+// ============ 渲染工作区 ============
+function stickerColor(type) {
+  var map = { '程序': '#eaf4ff', '美术': '#fff0f3', '策划': '#fff9dc', '音频': '#efe9ff', '测试': '#eaf8ec', '发布': '#eaf1ff' };
+  return map[type] || '#fff9dc';
+}
+
+function priorityClass(p) { return p === 'high' ? 'priority-high' : p === 'medium' ? 'priority-medium' : 'priority-normal'; }
+function priorityText(p) { return p === 'high' ? '高优 ★' : p === 'medium' ? '中' : '普通'; }
+function isOverdue(task) {
+  if (!task.dueDate || task.done) return false;
+  var today = new Date().toISOString().split('T')[0];
+  return task.dueDate < today;
+}
+function isToday(task) {
+  if (!task.dueDate) return false;
+  return task.dueDate === new Date().toISOString().split('T')[0];
+}
+
+function taskMatchesSearch(task) {
+  if (!searchQuery) return true;
+  var q = searchQuery.toLowerCase();
+  if (task.title.toLowerCase().includes(q) || (task.type || '').toLowerCase().includes(q)) return true;
+  return task.subtasks.some(function(s){ return s.title.toLowerCase().includes(q); });
+}
+
+function render() {
+  var list = document.getElementById('taskList');
+  var empty = document.getElementById('emptyState');
+  list.innerHTML = '';
+
+  var filtered = data.filter(function(t) {
+    if (projectStage !== '全部' && t.stage !== projectStage) return false;
+    if (projectType !== '全部' && t.type !== projectType) return false;
+    if (filter === 'active' && t.done) return false;
+    if (filter === 'done' && !t.done) return false;
+    if (filter === 'overdue' && !isOverdue(t)) return false;
+    if (filter === 'important' && t.priority === 'normal') return false;
+    return taskMatchesSearch(t);
+  });
+
+  document.getElementById('searchCountText').textContent = searchQuery ? ('找到 ' + filtered.length + ' 个匹配任务') : '输入关键词即时筛选';
+
+  if (!filtered.length) {
+    empty.style.display = 'flex';
+    if (data.length && projectStage !== '全部' && projectType !== '全部') {
+      document.getElementById('emptyTitle').textContent = '「' + projectStage + '」阶段 · 「' + projectType + '」类型暂无卡片';
+      document.getElementById('emptyDesc').textContent = '新建卡片会归入当前阶段与类型；切换到「全部」可查看其他卡片';
+    } else if (projectStage !== '全部' && data.length) {
+      document.getElementById('emptyTitle').textContent = '「' + projectStage + '」阶段暂无卡片';
+      document.getElementById('emptyDesc').textContent = '新建的卡片会自动归入当前阶段；切换到「全部」可查看其他阶段';
+    } else if (projectType !== '全部' && data.length) {
+      document.getElementById('emptyTitle').textContent = '「' + projectType + '」类型暂无卡片';
+      document.getElementById('emptyDesc').textContent = '新建的卡片会自动归入当前类型；切换到「全部」可查看其他类型';
+    } else {
+      document.getElementById('emptyTitle').textContent = '工作区暂无任务';
+      document.getElementById('emptyDesc').textContent = '点击左侧「新建」或右上角「导入」开启项目';
+    }
+  } else {
+    empty.style.display = 'none';
+  }
+
+  filtered.forEach(function(task) {
+    var realIdx = data.indexOf(task);
+    var li = document.createElement('li');
+    li.className = 'sticker-card' + (task.done ? ' done' : '');
+    li.dataset.taskIndex = realIdx;
+    li.style.left = task.x + 'px';
+    li.style.top = task.y + 'px';
+    li.style.setProperty('--sticker-rotation', task.rotation + 'deg');
+    li.style.setProperty('--sticker-color', stickerColor(task.type));
+
+    // 头部
+    var header = document.createElement('div');
+    header.className = 'task-header';
+    var grip = document.createElement('div');
+    grip.className = 'sticker-grip';
+    grip.innerHTML = '<svg viewBox="0 0 12 18"><circle cx="3" cy="3" r="1.5"/><circle cx="9" cy="3" r="1.5"/><circle cx="3" cy="9" r="1.5"/><circle cx="9" cy="9" r="1.5"/><circle cx="3" cy="15" r="1.5"/><circle cx="9" cy="15" r="1.5"/></svg><small>拖动</small>';
+    initCardDrag(grip, li, task);
+
+    var actions = document.createElement('div');
+    actions.className = 'sticker-actions';
+    var editBtn = document.createElement('button');
+    editBtn.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+    editBtn.title = '编辑属性';
+    editBtn.onclick = function(e){ e.stopPropagation(); openTaskEditor(realIdx); };
+    
+    var delBtn = document.createElement('button');
+    delBtn.innerHTML = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    delBtn.title = '删除任务';
+    delBtn.onclick = function(e){
+      e.stopPropagation();
+      if(confirm('确定删除任务「' + task.title + '」吗？')) {
+        data.splice(realIdx, 1);
+        saveData();
+        render();
+        recordHistory('删除任务：' + task.title);
+      }
+    };
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    header.appendChild(grip);
+    header.appendChild(actions);
+
+    // 卡片主体
+    var body = document.createElement('div');
+    body.className = 'sticker-body';
+
+    var titleLine = document.createElement('div');
+    titleLine.className = 'sticker-title-line';
+
+    var check = document.createElement('div');
+    check.className = 'check sticker-check' + (task.done ? ' checked' : '');
+    check.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+    check.onclick = function(e) {
+      e.stopPropagation();
+      task.done = !task.done;
+      if (syncSubtasks) task.subtasks.forEach(function(s){ s.done = task.done; });
+      saveData();
+      render();
+      recordHistory((task.done ? '完成：' : '取消完成：') + task.title);
+    };
+
+    var titleRow = document.createElement('div');
+    titleRow.className = 'task-title-row';
+    if (task.priority === 'high') {
+      var star = document.createElement('span');
+      star.className = 'star-mark';
+      star.innerHTML = '<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+      titleRow.appendChild(star);
+    }
+    var title = document.createElement('span');
+    title.className = 'task-title';
+    title.textContent = task.title;
+    title.contentEditable = true;
+    var beforeTitle = task.title;
+    title.onfocus = function(){ beforeTitle = task.title; };
+    title.onblur = function(){
+      var v = title.textContent.trim();
+      if (v && v !== beforeTitle) { task.title = v; saveData(); recordHistory('修改标题'); }
+      else if (!v) { title.textContent = task.title; }
+    };
+    title.onkeydown = function(e){ if (e.key === 'Enter') { e.preventDefault(); title.blur(); } };
+    titleRow.appendChild(title);
+
+    var expand = document.createElement('button');
+    expand.className = 'expand-icon';
+    expand.innerHTML = task.expanded 
+      ? '<svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+      : '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+    expand.title = task.expanded ? '收起子项' : '展开子项';
+    expand.onclick = function(e) {
+      e.stopPropagation();
+      task.expanded = !task.expanded;
+      saveData();
+      render();
+    };
+
+    titleLine.appendChild(check);
+    titleLine.appendChild(titleRow);
+    titleLine.appendChild(expand);
+    body.appendChild(titleLine);
+
+    // 标签 Meta
+    var meta = document.createElement('div');
+    meta.className = 'sticker-meta';
+    var pChip = document.createElement('span');
+    pChip.className = 'meta-chip ' + priorityClass(task.priority);
+    pChip.textContent = priorityText(task.priority);
+    meta.appendChild(pChip);
+
+    var tChip = document.createElement('span');
+    tChip.className = 'meta-chip type-chip';
+    tChip.textContent = task.type || '策划';
+    meta.appendChild(tChip);
+
+    if (projectStage === '全部') {
+      var sChip = document.createElement('span');
+      sChip.className = 'meta-chip due-chip';
+      sChip.textContent = task.stage || '未分类';
+      sChip.title = '所属阶段';
+      meta.appendChild(sChip);
+    }
+
+    if (task.dueDate) {
+      var dChip = document.createElement('span');
+      dChip.className = 'meta-chip due-chip' + (isOverdue(task) ? ' overdue' : (isToday(task) ? ' today' : ''));
+      dChip.textContent = (isOverdue(task) ? '逾期 ' : '截止 ') + task.dueDate.slice(5);
+      meta.appendChild(dChip);
+    }
+
+    var doneCount = task.subtasks.filter(function(s){ return s.done; }).length;
+    var progWrap = document.createElement('div');
+    progWrap.className = 'task-progress';
+    var pct = task.subtasks.length ? Math.round((doneCount / task.subtasks.length) * 100) : (task.done ? 100 : 0);
+    progWrap.innerHTML = '<div class="task-progress-bg"><div class="task-progress-fill" style="width:' + pct + '%"></div></div>' +
+                          '<span class="task-progress-text">' + doneCount + '/' + task.subtasks.length + '</span>';
+    meta.appendChild(progWrap);
+    body.appendChild(meta);
+
+    // 子任务
+    var subList = document.createElement('ul');
+    subList.className = 'subtask-list' + (task.expanded ? ' open' : '');
+    task.subtasks.forEach(function(sub, si) {
+      var subLi = document.createElement('li');
+      subLi.className = 'subtask-item' + (sub.done ? ' done' : '');
+      subLi.title = '拖动抓手可排序或移到其他卡片';
+      var grip = document.createElement('span');
+      grip.className = 'subtask-grip';
+      grip.title = '拖拽移动子项';
+      grip.innerHTML = '<svg viewBox="0 0 10 16"><circle cx="2.5" cy="3" r="1.5"/><circle cx="7.5" cy="3" r="1.5"/><circle cx="2.5" cy="8" r="1.5"/><circle cx="7.5" cy="8" r="1.5"/><circle cx="2.5" cy="13" r="1.5"/><circle cx="7.5" cy="13" r="1.5"/></svg>';
+      initSubtaskDrag(grip, subLi, task, sub, si);
+      var sc = document.createElement('div');
+      sc.className = 'check' + (sub.done ? ' checked' : '');
+      sc.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+      sc.onclick = function(e) {
+        e.stopPropagation();
+        sub.done = !sub.done;
+        if (syncSubtasks && task.subtasks.length > 0) {
+          task.done = task.subtasks.every(function(s){ return s.done; });
+        }
+        saveData();
+        render();
+        recordHistory((sub.done ? '完成子项：' : '取消子项：') + sub.title);
+      };
+
+      var st = document.createElement('span');
+      st.className = 'subtask-title';
+      st.textContent = sub.title;
+      st.contentEditable = true;
+      st.onkeydown = function(e){ if (e.key === 'Enter') { e.preventDefault(); st.blur(); } };
+      st.onblur = function(){
+        var sv = st.textContent.trim();
+        if (sv) { sub.title = sv; saveData(); } else { st.textContent = sub.title; }
+      };
+
+      var sDel = document.createElement('button');
+      sDel.className = 'del-btn';
+      sDel.innerHTML = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+      sDel.onclick = function(e){
+        e.stopPropagation();
+        task.subtasks.splice(si, 1);
+        saveData();
+        render();
+      };
+
+      subLi.appendChild(grip);
+      subLi.appendChild(sc);
+      subLi.appendChild(st);
+      subLi.appendChild(sDel);
+      subList.appendChild(subLi);
+    });
+
+    var addSubRow = document.createElement('div');
+    addSubRow.className = 'add-subtask';
+    var addSubInp = document.createElement('input');
+    addSubInp.placeholder = '添加子任务…';
+    var addSubBtn = document.createElement('button');
+    addSubBtn.className = 'btn btn-primary';
+    addSubBtn.textContent = '+';
+    addSubBtn.onclick = function(e) {
+      e.stopPropagation();
+      var txt = addSubInp.value.trim();
+      if (txt) {
+        task.subtasks.push({ title: txt, done: false });
+        task.expanded = true;
+        saveData();
+        render();
+      }
+    };
+    addSubInp.onkeydown = function(e){ if (e.key === 'Enter') { e.preventDefault(); addSubBtn.click(); } };
+    addSubRow.appendChild(addSubInp);
+    addSubRow.appendChild(addSubBtn);
+    subList.appendChild(addSubRow);
+
+    body.appendChild(subList);
+    li.appendChild(header);
+    li.appendChild(body);
+    list.appendChild(li);
+  });
+
+  updateTotalProgress();
+}
+
+function updateTotalProgress() {
+  var total = 0, done = 0;
+  data.forEach(function(t) {
+    total += 1 + t.subtasks.length;
+    done += (t.done ? 1 : 0) + t.subtasks.filter(function(s){ return s.done; }).length;
+  });
+  var pct = total === 0 ? 0 : Math.round((done / total) * 100);
+  document.getElementById('progressText').textContent = done + '/' + total;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+// ============ 属性编辑弹窗 ============
+function openTaskEditor(index) {
+  var task = data[index];
+  if (!task) return;
+  editorTaskIndex = index;
+  document.getElementById('editorTitle').value = task.title;
+  var stageSel = document.getElementById('editorStage');
+  stageSel.innerHTML = '';
+  stageList.forEach(function(s) {
+    var opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s;
+    stageSel.appendChild(opt);
+  });
+  stageSel.value = stageList.indexOf(task.stage) !== -1 ? task.stage : stageList[0];
+  var typeSel = document.getElementById('editorType');
+  typeSel.innerHTML = '';
+  typeList.forEach(function(s) {
+    var opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s;
+    typeSel.appendChild(opt);
+  });
+  typeSel.value = typeList.indexOf(task.type) !== -1 ? task.type : typeList[0];
+  document.getElementById('editorPriority').value = task.priority || 'normal';
+  document.getElementById('editorDueDate').value = task.dueDate || '';
+  document.getElementById('taskEditorOverlay').classList.add('open');
+  setTimeout(function(){ document.getElementById('editorTitle').focus(); }, 50);
+}
+
+function closeTaskEditor() {
+  editorTaskIndex = -1;
+  document.getElementById('taskEditorOverlay').classList.remove('open');
+}
+
+function saveTaskEditor() {
+  var task = data[editorTaskIndex];
+  if (!task) return;
+  var title = document.getElementById('editorTitle').value.trim();
+  if (!title) { alert('任务名称不能为空'); return; }
+  task.title = title;
+  task.stage = document.getElementById('editorStage').value;
+  task.priority = document.getElementById('editorPriority').value;
+  task.type = document.getElementById('editorType').value;
+  task.dueDate = document.getElementById('editorDueDate').value;
+  saveData();
+  render();
+  closeTaskEditor();
+  recordHistory('修改任务属性：' + task.title);
+}
+
+// ============ 快速模板 ============
+function createTemplate(kind) {
+  var templates = {
+    feature: { title: '新游戏功能', type: '程序', priority: 'medium', subtasks: ['需求设计', '程序逻辑编写', '美术UI对接', '联调测试', '修复优化'] },
+    character: { title: '制作游戏主角', type: '美术', priority: 'high', subtasks: ['角色人设立绘', '骨骼绑定', '跑动/跳跃动画', '攻击动作', '受击死亡状态'] },
+    scene: { title: '关卡场景搭建', type: '美术', priority: 'normal', subtasks: ['场景白模搭建', '地块瓦片绘制', '碰撞体配置', '光照氛围烘托'] },
+    test: { title: '阶段版本测试', type: '测试', priority: 'high', subtasks: ['全流程跑通测试', '记录 Bug 清单', '开发修复确认', '回归验证'] }
+  };
+  var tpl = templates[kind];
+  if (!tpl) return;
+  data.push({
+    title: tpl.title,
+    done: false,
+    expanded: true,
+    createdAt: new Date().toISOString(),
+    stage: lastStage,
+    priority: tpl.priority,
+    type: tpl.type,
+    dueDate: '',
+    x: 120 + Math.random() * 80,
+    y: 100 + Math.random() * 80,
+    rotation: [-1.2, 0.8, -0.6, 1.1][Math.floor(Math.random() * 4)],
+    subtasks: tpl.subtasks.map(function(s){ return { title: s, done: false }; })
+  });
+  saveData();
+  render();
+  recordHistory('使用模板创建：' + tpl.title);
+}
+
+// ============ 事件绑定 ============
+function initEventListeners() {
+  // 左侧 Dock 选项卡切换
+  document.getElementById('dockBtnAdd').onclick = function() { switchSidePanel('add'); };
+  document.getElementById('dockBtnSearch').onclick = function() { switchSidePanel('search'); };
+  document.getElementById('dockBtnFilter').onclick = function() { switchSidePanel('filter'); };
+  document.getElementById('dockBtnHistory').onclick = function() { switchSidePanel('history'); };
+  document.getElementById('sidePanelCloseBtn').onclick = closeSidePanel;
+
+  // 点击中间工作区自动收起左侧面板
+  var boardContainer = document.getElementById('boardContainer');
+  boardContainer.addEventListener('pointerdown', function(e) {
+    if (activeTab !== null && !e.target.closest('#sidePanel') && !e.target.closest('.side-dock')) {
+      closeSidePanel();
+    }
+  });
+
+  // 新建任务
+  document.getElementById('addTaskBtn').onclick = function() {
+    var inp = document.getElementById('newTaskInput');
+    var val = inp.value.trim();
+    if (val) {
+      data.push({
+        title: val,
+        done: false,
+        expanded: true,
+        createdAt: new Date().toISOString(),
+        stage: lastStage,
+        priority: 'normal',
+        type: lastType,
+        dueDate: '',
+        x: 140 + Math.random() * 80,
+        y: 120 + Math.random() * 80,
+        rotation: (Math.random() * 3 - 1.5),
+        subtasks: []
+      });
+      saveData();
+      render();
+      inp.value = '';
+      recordHistory('新建任务（' + lastStage + '）：' + val);
+    }
+  };
+  document.getElementById('newTaskInput').onkeydown = function(e){
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('addTaskBtn').click(); }
+  };
+  document.getElementById('emptyAddBtn').onclick = function(){ switchSidePanel('add'); };
+
+  // 模板菜单
+  document.getElementById('templateBtn').onclick = function(e){
+    e.stopPropagation();
+    document.getElementById('templateDropdown').classList.toggle('open');
+  };
+  document.querySelectorAll('.template-option').forEach(function(btn){
+    btn.onclick = function() {
+      createTemplate(btn.dataset.template);
+      document.getElementById('templateDropdown').classList.remove('open');
+    };
+  });
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('#templateBtn') && !e.target.closest('#templateDropdown')) {
+      document.getElementById('templateDropdown').classList.remove('open');
+    }
+  });
+
+  // 搜索
+  document.getElementById('searchInput').oninput = function(e) {
+    searchQuery = e.target.value.trim();
+    render();
+  };
+  document.getElementById('clearSearchBtn').onclick = function() {
+    document.getElementById('searchInput').value = '';
+    searchQuery = '';
+    render();
+  };
+
+  // 状态筛选
+  document.querySelectorAll('.filter-bar .btn').forEach(function(btn) {
+    btn.onclick = function() {
+      document.querySelectorAll('.filter-bar .btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      filter = btn.dataset.filter;
+      render();
+    };
+  });
+
+  // 排序与排布
+  var sortHandlers = {
+    custom: function(tasks) {
+      // 自由摆放：按各自已有的坐标排布，无需改动
+      return tasks;
+    },
+    time: function(tasks) {
+      // 按创建时间升序
+      var arr = tasks.slice().sort(function(a, b) {
+        return (a.createdAt || '').localeCompare(b.createdAt || '');
+      });
+      return arr;
+    },
+    name: function(tasks) {
+      // 按名称（使用中文 locale 比较）
+      var arr = tasks.slice().sort(function(a, b) {
+        return String(a.title).localeCompare(String(b.title), 'zh');
+      });
+      return arr;
+    },
+    due: function(tasks) {
+      // 按截止日期升序，无截止日期的排最后
+      var arr = tasks.slice().sort(function(a, b) {
+        var da = a.dueDate || '9999-12-31';
+        var db = b.dueDate || '9999-12-31';
+        if (da === db) return (a.createdAt || '').localeCompare(b.createdAt || '');
+        return da < db ? -1 : 1;
+      });
+      return arr;
+    },
+    priority: function(tasks) {
+      // 优先级 高 > 中 > 普通；优先级相同则按创建时间
+      var order = { 'high': 0, 'medium': 1, 'normal': 2 };
+      var arr = tasks.slice().sort(function(a, b) {
+        var pa = order[a.priority] !== undefined ? order[a.priority] : 2;
+        var pb = order[b.priority] !== undefined ? order[b.priority] : 2;
+        if (pa !== pb) return pa - pb;
+        return (a.createdAt || '').localeCompare(b.createdAt || '');
+      });
+      return arr;
+    }
+  };
+
+  // 估算卡片高度（无真实测量时兜底）
+  function estimateHeight(t) {
+    var h = 150;
+    if (t.expanded && t.subtasks && t.subtasks.length) h += t.subtasks.length * 26 + 12;
+    return h;
+  }
+
+  // 从已渲染 DOM 读取每张卡片的真实高度（按 data 索引）
+  function measureCardHeights() {
+    var map = {};
+    document.querySelectorAll('.sticker-card[data-task-index]').forEach(function(card) {
+      var idx = parseInt(card.dataset.taskIndex, 10);
+      if (!isNaN(idx)) map[idx] = card.offsetHeight;
+    });
+    return map;
+  }
+
+  // 高度感知布局：一行 4 张从左到右；每行 Y 基于该行最大卡片高度累加，避免上下重叠
+  function applySortLayout(orderedTasks, heightMap) {
+    if (!orderedTasks.length) return;
+    var perRow = 4, x0 = 100, y0 = 80, gapY = 60;
+    var n = orderedTasks.length;
+    var rows = Math.ceil(n / perRow);
+    var indices = orderedTasks.map(function(t) { return data.indexOf(t); });
+
+    orderedTasks.forEach(function(t, i) {
+      t.x = x0 + (i % perRow) * (330);
+    });
+
+    var yCursor = y0;
+    for (var r = 0; r < rows; r++) {
+      var maxH = 140;
+      for (var c = 0; c < perRow; c++) {
+        var i2 = r * perRow + c;
+        if (i2 >= n) break;
+        var dj = indices[i2];
+        var h = (heightMap && heightMap[dj]) ? heightMap[dj] : estimateHeight(orderedTasks[i2]);
+        if (h > maxH) maxH = h;
+      }
+      for (var c2 = 0; c2 < perRow; c2++) {
+        var i3 = r * perRow + c2;
+        if (i3 >= n) break;
+        orderedTasks[i3].y = yCursor;
+      }
+      yCursor += maxH + gapY;
+    }
+  }
+
+  function recomputeSortLayout() {
+    var visible = data.filter(function(t) {
+      if (projectStage !== '全部' && t.stage !== projectStage) return false;
+      if (projectType !== '全部' && t.type !== projectType) return false;
+      if (filter === 'active' && t.done) return false;
+      if (filter === 'done' && !t.done) return false;
+      if (filter === 'overdue' && !isOverdue(t)) return false;
+      if (filter === 'important' && t.priority === 'normal') return false;
+      return taskMatchesSearch(t);
+    });
+    var ordered = sortHandlers[sortBy] ? sortHandlers[sortBy](visible) : visible;
+    // 第一遍：按估计高度布局并渲染，以便获取真实卡片高度
+    applySortLayout(ordered, null);
+    saveData();
+    render();
+    // 第二遍：用真实测量高度修正 Y 轴，消除上下重叠
+    var heightMap = measureCardHeights();
+    applySortLayout(ordered, heightMap);
+    saveData();
+    render();
+  }
+
+  document.getElementById('sortBar').addEventListener('click', function(e) {
+    var btn = e.target.closest('.btn[data-sort]');
+    if (!btn) return;
+    document.querySelectorAll('#sortBar .btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    sortBy = btn.dataset.sort;
+    if (sortBy !== 'custom') {
+      recomputeSortLayout();
+      recordHistory('切换排序：' + btn.textContent.trim());
+    } else {
+      render();
+    }
+  });
+
+  // 子任务联动开关
+  document.getElementById('syncSubtasks').onchange = function(e) {
+    syncSubtasks = e.target.checked;
+    saveLocalConfig();
+  };
+
+  // 右上角 导出
+  document.getElementById('exportBtn').onclick = exportData;
+
+  // 右上角 导入
+  document.getElementById('importBtn').onclick = function() {
+    document.getElementById('importFile').click();
+  };
+  document.getElementById('importFile').onchange = function(e) {
+    handleFileSelect(e.target);
+  };
+
+  // 导入方式弹窗按钮绑定
+  document.getElementById('importAppendBtn').onclick = executeAppendImport;
+  document.getElementById('importOverwriteBtn').onclick = executeOverwriteImport;
+  document.getElementById('importCancelBtn').onclick = closeImportChoiceModal;
+  document.getElementById('importChoiceOverlay').onclick = function(e) {
+    if (e.target === this) closeImportChoiceModal();
+  };
+
+  // 清空全部
+  document.getElementById('dockBtnReset').onclick = function() {
+    if (!data.length) return alert('当前没有卡片。');
+    if (confirm('确定清空所有任务吗？可在历史中撤回。')) {
+      recordHistory('清空所有任务');
+      data = [];
+      saveData();
+      render();
+    }
+  };
+
+  // 历史清空
+  document.getElementById('clearHistoryBtn').onclick = function() {
+    if (confirm('确定清空历史记录吗？')) { historyStack = []; updateHistoryUI(); }
+  };
+
+  // 阶段选择
+  document.getElementById('stageSelect').onchange = function(e) {
+    projectStage = e.target.value;
+    if (projectStage !== '全部') lastStage = projectStage;
+    saveLocalConfig();
+    recordHistory('切换阶段：' + projectStage);
+    render();
+  };
+
+  // 阶段管理弹窗
+  document.getElementById('stageEditBtn').onclick = openStageManager;
+  document.getElementById('stageManagerCancel').onclick = closeStageManager;
+  document.getElementById('stageManagerSave').onclick = saveStageManager;
+  document.getElementById('stageAddBtn').onclick = function() {
+    var inp = appendStageRow(document.getElementById('stageManageList'), '', 0);
+    inp.focus();
+  };
+  document.getElementById('stageManagerOverlay').onclick = function(e) {
+    if (e.target === this) closeStageManager();
+  };
+
+  // 类型选择
+  document.getElementById('typeSelect').onchange = function(e) {
+    projectType = e.target.value;
+    if (projectType !== '全部') lastType = projectType;
+    saveLocalConfig();
+    recordHistory('切换类型：' + projectType);
+    render();
+  };
+
+  // 类型管理弹窗
+  document.getElementById('typeEditBtn').onclick = openTypeManager;
+  document.getElementById('typeManagerCancel').onclick = closeTypeManager;
+  document.getElementById('typeManagerSave').onclick = saveTypeManager;
+  document.getElementById('typeAddBtn').onclick = function() {
+    var inp = appendTypeRow(document.getElementById('typeManageList'), '', 0);
+    inp.focus();
+  };
+  document.getElementById('typeManagerOverlay').onclick = function(e) {
+    if (e.target === this) closeTypeManager();
+  };
+
+  // 编辑弹窗操作
+  document.getElementById('editorSave').onclick = saveTaskEditor;
+  document.getElementById('editorCancel').onclick = closeTaskEditor;
+  document.getElementById('taskEditorOverlay').onclick = function(e) {
+    if (e.target === this) closeTaskEditor();
+  };
+
+  // 快捷键
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeSidePanel();
+      closeTaskEditor();
+      closeImportChoiceModal();
+      closeStageManager();
+      closeTypeManager();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      switchSidePanel('search');
+    }
+  });
+}
+
+// ============ 应用启动 ============
+loadLocalConfig();
+applyTitleUI();
+initTitleEdit();
+refreshStageSelect();
+refreshTypeSelect();
+document.getElementById('syncSubtasks').checked = syncSubtasks;
+initCanvasPanZoom();
+applyCanvasTransform();
+initEventListeners();
+loadData();
+render();
+
+</script>
+</body>
+</html>

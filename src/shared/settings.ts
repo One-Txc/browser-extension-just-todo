@@ -20,7 +20,7 @@ export const DEFAULT_SETTINGS: TodoSettings = {
   autoArchive: false,
   archiveVisible: 10,
   newtabOverride: true,
-  newTaskPosition: 'last',
+  newTaskPosition: 'first',
   activeLimit: 50,
   archiveLimit: 100,
 };

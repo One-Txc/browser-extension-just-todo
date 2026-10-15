@@ -83,6 +83,12 @@ export async function persistRepo(repo: Repo): Promise<void> {
   await chrome.storage.local.set({ [DATA_KEY]: repo });
 }
 
+/** storage 里是否写过数据键：没有即视为首次安装（此时才播种示例数据，见 seed.ts） */
+export async function hasRepoKey(): Promise<boolean> {
+  const got = await chrome.storage.local.get(DATA_KEY);
+  return DATA_KEY in (got as Record<string, unknown>);
+}
+
 function groupNameOf(repo: Repo, gid: string | null): string | null {
   if (!gid) return null;
   return repo.groups.find(g => g.id === gid)?.name ?? null;
@@ -162,6 +168,11 @@ export function renameTask(repo: Repo, id: string, title: string): void {
 }
 export function removeTask(repo: Repo, id: string): void {
   repo.tasks = repo.tasks.filter(t => t.id !== id);
+}
+/** 手动改任务分组：gid 为 null 移出为未分组；不存在的分组 id 回落为 null（与 addTask 同规则） */
+export function setTaskGroup(repo: Repo, id: string, gid: string | null): void {
+  const t = repo.tasks.find(x => x.id === id);
+  if (t) t.gid = gid && repo.groups.some(g => g.id === gid) ? gid : null;
 }
 export function archiveTask(repo: Repo, id: string, archiveLimit: number): void {
   const t = repo.tasks.find(x => x.id === id);

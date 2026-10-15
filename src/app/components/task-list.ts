@@ -2,7 +2,7 @@ import { registerRenderer, type AppContext } from '../context.ts';
 import { t } from '../../shared/i18n.ts';
 import { ICON, esc } from '../icons.ts';
 import {
-  visibleTasks, setTaskDone, renameTask, removeTask, archiveTask, archiveAllDone, moveTask, persistRepo, type Task,
+  visibleTasks, setTaskDone, renameTask, removeTask, setTaskGroup, archiveTask, archiveAllDone, moveTask, persistRepo, type Task,
 } from '../../shared/store.ts';
 
 /**
@@ -36,7 +36,8 @@ function nextSameKindId(ctx: AppContext, done: boolean, row: HTMLElement): strin
   return null;
 }
 
-function rowHtml(ctx: AppContext, task: Task, isDone: boolean, showGroup: boolean): string {
+/** 分组标签是改分组的入口：所有 Tab 下都显示，点击原地换成下拉（见 inlineGroupSelect） */
+function rowHtml(ctx: AppContext, task: Task, isDone: boolean): string {
   const gname = task.gid ? ctx.repo.groups.find((g) => g.id === task.gid)?.name ?? null : null;
   const ops = isDone
     ? `<button class="op" data-act="reopen" title="${esc(t('opReopen'))}">${ICON.undo}</button><button class="op" data-act="archive" title="${esc(t('opArchive'))}">${ICON.box}</button>`
@@ -45,7 +46,7 @@ function rowHtml(ctx: AppContext, task: Task, isDone: boolean, showGroup: boolea
     <span class="grip" draggable="true" aria-hidden="true" title="${esc(t('dragHint'))}">${ICON.grip}</span>
     <button class="check" data-act="toggle">${ICON.check}</button>
     <span class="title${isDone ? '' : ' editable'}"${isDone ? '' : ` title="${esc(t('editHint'))}"`}><span class="t-text">${esc(task.title)}</span><span class="t-fill" draggable="true" aria-hidden="true"></span></span>
-    ${showGroup ? `<span class="g-tag${gname ? '' : ' none'}">${esc(gname ?? t('ungrouped'))}</span>` : ''}
+    <button class="g-tag${gname ? '' : ' none'}" data-act="group" title="${esc(t('groupTagHint'))}">${esc(gname ?? t('ungrouped'))}</button>
     <span class="ops">${ops}<button class="op del" data-act="del" title="${esc(t('opDelete'))}">${ICON.trash}</button></span>
   </li>`;
 }
@@ -85,13 +86,55 @@ function inlineEdit(ctx: AppContext, row: HTMLElement): void {
   input.onblur = () => { void finish(true); };
 }
 
+/**
+ * 行内改分组：点任务行的分组标签，原地换成下拉选择。
+ * 与行内编辑共用 ctx.editing：选择器开着时跳过跨标签页联动，避免重渲染把未提交的选择冲掉。
+ * blur/Escape 不保存；change 提交后弹 toast（在分组 Tab 下任务会从视图里消失，需要告知去向）。
+ */
+function inlineGroupSelect(ctx: AppContext, row: HTMLElement): void {
+  const id = row.dataset.id ?? '';
+  const task = ctx.repo.tasks.find((x) => x.id === id);
+  const tagEl = row.querySelector('button.g-tag');
+  if (!task || !tagEl) return;
+
+  const wrap = document.createElement('span');
+  wrap.className = 'select-wrap';
+  wrap.innerHTML = `<select><option value="">${esc(t('pickerUngrouped'))}</option>${ctx.repo.groups
+    .map((g) => `<option value="${esc(g.id)}" ${task.gid === g.id ? 'selected' : ''}>${esc(g.name)}</option>`)
+    .join('')}</select>`;
+  const select = wrap.querySelector('select') as HTMLSelectElement;
+  select.value = task.gid ?? '';
+
+  ctx.editing = true;
+  tagEl.replaceWith(wrap);
+  select.focus();
+
+  let finished = false;
+  const finish = async (save: boolean) => {
+    if (finished) return;
+    finished = true;
+    ctx.editing = false;
+    const v = select.value;
+    if (save && v !== (task.gid ?? '')) {
+      setTaskGroup(ctx.repo, id, v || null);
+      await persistRepo(ctx.repo);
+      ctx.toast(t('toastMoved', [v ? ctx.repo.groups.find((g) => g.id === v)?.name ?? t('ungrouped') : t('ungrouped')]));
+    }
+    ctx.render();
+  };
+  select.onchange = () => { void finish(true); };
+  select.onblur = () => { void finish(false); };
+  select.onkeydown = (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); void finish(false); }
+  };
+}
+
 function renderTaskList(ctx: AppContext): void {
   const listEl = ctx.root.querySelector('#taskList') as HTMLElement | null;
   if (!listEl) return;
   const { undone, done } = visibleTasks(ctx.repo, ctx.currentGroup);
-  const showGroup = ctx.currentGroup === 'all';
 
-  let html = undone.map((tk) => rowHtml(ctx, tk, false, showGroup)).join('');
+  let html = undone.map((tk) => rowHtml(ctx, tk, false)).join('');
   if (done.length) {
     // 「全部归档」放在分隔行右侧：归档的是**所有**已完成任务（含其他分组），所以数量单算
     const allDone = ctx.repo.tasks.filter((tk) => tk.done).length;
@@ -99,7 +142,7 @@ function renderTaskList(ctx: AppContext): void {
       `<div class="done-divider"><span>${esc(t('doneDivider', [String(done.length)]))}</span>` +
       `<span class="rule"></span>` +
       `<button class="archive-all" data-act="archive-all">${esc(t('archiveAll', [String(allDone)]))}</button></div>` +
-      done.map((tk) => rowHtml(ctx, tk, true, showGroup)).join('');
+      done.map((tk) => rowHtml(ctx, tk, true)).join('');
   }
   if (!undone.length && !done.length) {
     html = `<div class="empty">${esc(t(ctx.currentGroup === 'all' ? 'emptyAll' : 'emptyGroup'))}</div>`;
@@ -215,6 +258,8 @@ function renderTaskList(ctx: AppContext): void {
       ctx.render();
     } else if (act === 'rename') {
       inlineEdit(ctx, row);
+    } else if (act === 'group') {
+      inlineGroupSelect(ctx, row);
     }
   };
 
