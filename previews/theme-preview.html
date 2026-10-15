@@ -338,20 +338,26 @@ body {
 .t-text {
   font-size: 16px; font-weight: 600; cursor: text; outline: none;
   padding: 1px 4px; margin-left: -4px; border-radius: 6px;
+  /* 任务文案允许换行：把 Shift+Enter 输入的 \n 原样显示（否则会被折成一整行） */
+  white-space: pre-wrap; overflow-wrap: anywhere;
 }
 /* 标题右侧的空白：真正可拖的元素（看不见，但吃满剩余宽度与整行高度） */
 .t-fill { flex: 1; align-self: stretch; min-width: 14px; cursor: grab }
 .t-fill:active { cursor: grabbing }
 .title.editable:hover { background: var(--hover-bg) }
-/* 行内编辑输入框：盒子做到 38px 舒展，但用负外边距抵消掉高出来的部分 ——
+/* 行内编辑框（textarea）：盒子做到 38px 舒展，但用负外边距抵消掉高出来的部分 ——
    行的内容高度由 --row-content-h 决定，所以编辑时行高完全不变（零跳动）。
-   字号/字重必须与 .t-text 一致，否则进入编辑时文字会跳一下 */
+   字号/字重/行走线必须与 .t-text 一致，否则进入编辑时文字会跳一下。
+   高度由 JS 按内容撑（autoGrow），这里给单行时的基准高度；超长文案在 40vh 处封顶出滚动条 */
 .title-input {
-  flex: 1; min-width: 0; font-family: inherit; font-size: 16px; font-weight: 600; line-height: 22px;
-  height: calc(var(--row-content-h) + var(--input-lift));
+  flex: 1; min-width: 0; font-family: inherit; font-size: 16px; font-weight: 600; line-height: 24px;
+  padding: 5px 10px;
+  min-height: calc(var(--row-content-h) + var(--input-lift));
+  max-height: 40vh; overflow: hidden auto;
   margin: calc(var(--input-lift) / -2) 0;
-  padding: 7px 10px; border: 1px solid var(--border-strong); border-radius: 10px;
+  border: 1px solid var(--border-strong); border-radius: 10px;
   color: var(--ink); background: var(--input-bg); outline: none;
+  resize: none; white-space: pre-wrap; overflow-wrap: anywhere;
   transition: border-color .13s, box-shadow .13s;
 }
 .title-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft) }
@@ -360,6 +366,28 @@ body {
 .task.done .title .t-text { font-weight: 400 }
 .g-tag { font-size: 11.5px; color: var(--tag-fg); background: var(--tag-bg); padding: 2px 9px; border-radius: 999px; flex: none }
 .g-tag.none { color: var(--tag-none-fg); background: var(--tag-none-bg) }
+/* 任务行的分组标签是按钮（点击弹菜单改分组）；归档区与新增行里的标签仍是纯展示 span */
+.task .g-tag { display: inline-flex; align-items: center; gap: 2px; border: 0; font-family: inherit; cursor: pointer }
+.task .g-tag:hover { filter: brightness(0.95) }
+.task .g-tag .tag-caret { width: 9px; height: 9px; flex: none; opacity: .55 }
+
+/* 分组弹出菜单（fixed 定位锚在标签旁，位置由 openGroupMenu 计算） */
+.g-menu {
+  position: fixed; z-index: 30; min-width: 150px; max-width: 230px; max-height: 284px; overflow: auto;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--modal-shadow);
+  padding: 5px; animation: pop .14s ease;
+}
+.g-opt {
+  display: flex; align-items: center; gap: 7px; width: 100%; border: 0; background: transparent;
+  font-family: inherit; font-size: 13px; color: var(--ink-2); padding: 7px 9px; border-radius: 8px;
+  cursor: pointer; text-align: left;
+}
+.g-opt:hover { background: var(--hover-bg); color: var(--ink) }
+.g-opt.active { color: var(--primary); font-weight: 600 }
+.g-opt-check { width: 13px; height: 13px; flex: none; display: grid; place-items: center; color: var(--primary); visibility: hidden }
+.g-opt-check svg { width: 12px; height: 12px }
+.g-opt.active .g-opt-check { visibility: visible }
+.g-opt-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .ops { display: flex; gap: 3px; opacity: 0; transition: .15s; flex: none }
 .task .ops { min-width: 93px; justify-content: flex-end }
 .op {
@@ -430,7 +458,7 @@ body {
 .a-item:hover { background: var(--a-item-hover-bg) }
 .a-item:hover .ops { opacity: 1 }
 .a-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--archive-dot); flex: none }
-.a-title { flex: 1; color: var(--ink-2); font-size: 14px }
+.a-title { flex: 1; color: var(--ink-2); font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere }
 .a-date { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; flex: none }
 .archive-foot { padding: 10px 20px 16px; font-size: 12px; color: var(--ink-3) }
 

@@ -15,7 +15,7 @@ async function boot() {
   return ctx;
 }
 
-function enter(input: HTMLInputElement, value: string): void {
+function enter(input: HTMLInputElement | HTMLTextAreaElement, value: string): void {
   input.value = value;
   input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 }
@@ -65,11 +65,43 @@ test('double-click title edits and Enter renames', async () => {
   await tick();
   const titleEl = ctx.root.querySelector('.task:not(.done) .title') as HTMLElement;
   titleEl.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-  const edit = ctx.root.querySelector('.task input') as HTMLInputElement;
+  const edit = ctx.root.querySelector('.task textarea') as HTMLTextAreaElement;
   assert.ok(edit);
   enter(edit, 'renamed');
   await tick();
   assert.match(ctx.root.textContent ?? '', /renamed/);
+});
+
+test('Shift+Enter keeps a newline in the title, Enter saves it', async () => {
+  const ctx = await boot();
+  const input = ctx.root.querySelector('#newTask') as HTMLInputElement;
+  enter(input, '第一行');
+  await tick();
+  // 首启可能带示例数据，所以按文案定位刚新增的那一行，而不是假定列表为空
+  const row = [...ctx.root.querySelectorAll('.task:not(.done)')].find(
+    (el) => el.querySelector('.t-text')?.textContent === '第一行'
+  ) as HTMLElement | undefined;
+  assert.ok(row, '新增的任务行应出现在列表里');
+  const id = row.dataset.id ?? '';
+  (row.querySelector('.title') as HTMLElement).dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  const edit = ctx.root.querySelector('.task textarea') as HTMLTextAreaElement;
+  assert.ok(edit);
+  // 输入法组合中的回车（中文候选词确认）不结束编辑
+  const composing = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
+  Object.defineProperty(composing, 'isComposing', { value: true });
+  edit.dispatchEvent(composing);
+  assert.equal(ctx.root.querySelector('.task textarea'), edit, '输入法组合中的回车不应结束编辑');
+  // Shift+Enter 只换行、不保存（handler 不拦默认行为，真实浏览器会插入 \n；jsdom 不会，所以直接给值）
+  edit.value = '第一行\n第二行';
+  edit.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true }));
+  assert.equal(ctx.root.querySelector('.task textarea'), edit, 'Shift+Enter 不应结束编辑');
+  enter(edit, edit.value);
+  await tick();
+  const { loadRepo } = await import('../src/shared/store.ts');
+  const saved = (await loadRepo()).tasks.find((x) => x.id === id);
+  assert.equal(saved?.title, '第一行\n第二行');
+  // 展示态保留换行（.t-text 的 white-space: pre-wrap 才能显示出来）
+  assert.equal(ctx.root.querySelector(`.task[data-id="${id}"] .t-text`)?.textContent, '第一行\n第二行');
 });
 
 test('reopen returns a completed task to the active list', async () => {

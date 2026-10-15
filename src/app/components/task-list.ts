@@ -46,7 +46,7 @@ function rowHtml(ctx: AppContext, task: Task, isDone: boolean): string {
     <span class="grip" draggable="true" aria-hidden="true" title="${esc(t('dragHint'))}">${ICON.grip}</span>
     <button class="check" data-act="toggle">${ICON.check}</button>
     <span class="title${isDone ? '' : ' editable'}"${isDone ? '' : ` title="${esc(t('editHint'))}"`}><span class="t-text">${esc(task.title)}</span><span class="t-fill" draggable="true" aria-hidden="true"></span></span>
-    <button class="g-tag${gname ? '' : ' none'}" data-act="group" title="${esc(t('groupTagHint'))}">${esc(gname ?? t('ungrouped'))}</button>
+    <button class="g-tag${gname ? '' : ' none'}" data-act="group" title="${esc(t('groupTagHint'))}"><span class="g-name">${esc(gname ?? t('ungrouped'))}</span><svg class="tag-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
     <span class="ops">${ops}<button class="op del" data-act="del" title="${esc(t('opDelete'))}">${ICON.trash}</button></span>
   </li>`;
 }
@@ -57,9 +57,20 @@ function inlineEdit(ctx: AppContext, row: HTMLElement): void {
   const titleEl = row.querySelector('.title') as HTMLElement | null;
   if (!task || !titleEl || task.done) return;
 
-  const input = document.createElement('input');
+  // 用 textarea 而不是 input：文案长到折行（或多行）时，单行输入框只能横向滚动、看不全。
+  // rows=1 + autoGrow 让它按内容长高，编辑态的行数和展示态一致；换行由 Shift+Enter 输入
+  const input = document.createElement('textarea');
   input.value = task.title;
   input.className = 'title-input';
+  input.rows = 1;
+
+  // 随内容长高：先把高度交回 CSS（min-height 生效），读 scrollHeight 得到真实内容高度，
+  // 再加回上下边框（box-sizing: border-box 下 scrollHeight 不含边框）
+  const autoGrow = (): void => {
+    input.style.height = 'auto';
+    if (input.scrollHeight <= 0) return; // 无布局环境（jsdom）下不设高度，交给 CSS
+    input.style.height = `${input.scrollHeight + input.offsetHeight - input.clientHeight}px`;
+  };
 
   ctx.editing = true;
   // 锁住进入编辑前的高度：单行标题本来就零跳动，多行标题换成单行输入框时也不会塌陷
@@ -67,6 +78,7 @@ function inlineEdit(ctx: AppContext, row: HTMLElement): void {
   titleEl.replaceWith(input);
   input.focus();
   input.select();
+  autoGrow();
 
   let finished = false;
   const finish = async (save: boolean) => {
@@ -79,53 +91,99 @@ function inlineEdit(ctx: AppContext, row: HTMLElement): void {
     }
     ctx.render();
   };
+  input.oninput = autoGrow; // 输入（含 Shift+Enter 换行）后重新撑高
   input.onkeydown = (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); void finish(true); }
+    if (e.isComposing) return; // 中文输入法用回车确认候选词，不该当成「保存」把编辑框关掉
+    // Enter 保存；Shift+Enter 换行（任务文案允许折成多行）
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void finish(true); }
     else if (e.key === 'Escape') { void finish(false); }
   };
   input.onblur = () => { void finish(true); };
 }
 
 /**
- * 行内改分组：点任务行的分组标签，原地换成下拉选择。
- * 与行内编辑共用 ctx.editing：选择器开着时跳过跨标签页联动，避免重渲染把未提交的选择冲掉。
- * blur/Escape 不保存；change 提交后弹 toast（在分组 Tab 下任务会从视图里消失，需要告知去向）。
+ * 改分组菜单：点分组标签直接弹出（单次点击），点选项即保存收起，点别处 / Esc / 滚动取消。
+ * 菜单挂在 document.body 上、fixed 定位锚到标签下方（放不下翻上方），不随列表重渲染销毁；
+ * 打开期间复用 ctx.editing 挡跨标签页联动刷新，避免菜单被冲掉。
  */
-function inlineGroupSelect(ctx: AppContext, row: HTMLElement): void {
-  const id = row.dataset.id ?? '';
+let gMenu: HTMLElement | null = null;
+let gMenuBtn: HTMLElement | null = null;
+let gMenuTeardown: (() => void) | null = null;
+
+function closeGroupMenu(): void {
+  gMenuTeardown?.();
+  gMenuTeardown = null;
+  gMenu?.remove();
+  gMenu = null;
+  gMenuBtn = null;
+}
+
+function openGroupMenu(ctx: AppContext, btn: HTMLElement): void {
+  if (gMenu && gMenuBtn === btn) { closeGroupMenu(); return; } // 再点一次同一个标签 = 收起
+  closeGroupMenu();
+  if (!ctx.repo.groups.length) return; // 一个分组都没有时，唯一选项就是「未分组」，不用弹
+
+  const row = btn.closest('.task') as HTMLElement | null;
+  const id = row?.dataset.id ?? '';
   const task = ctx.repo.tasks.find((x) => x.id === id);
-  const tagEl = row.querySelector('button.g-tag');
-  if (!task || !tagEl) return;
+  if (!task) return;
 
-  const wrap = document.createElement('span');
-  wrap.className = 'select-wrap';
-  wrap.innerHTML = `<select><option value="">${esc(t('pickerUngrouped'))}</option>${ctx.repo.groups
-    .map((g) => `<option value="${esc(g.id)}" ${task.gid === g.id ? 'selected' : ''}>${esc(g.name)}</option>`)
-    .join('')}</select>`;
-  const select = wrap.querySelector('select') as HTMLSelectElement;
-  select.value = task.gid ?? '';
-
-  ctx.editing = true;
-  tagEl.replaceWith(wrap);
-  select.focus();
-
-  let finished = false;
-  const finish = async (save: boolean) => {
-    if (finished) return;
-    finished = true;
-    ctx.editing = false;
-    const v = select.value;
-    if (save && v !== (task.gid ?? '')) {
-      setTaskGroup(ctx.repo, id, v || null);
-      await persistRepo(ctx.repo);
-      ctx.toast(t('toastMoved', [v ? ctx.repo.groups.find((g) => g.id === v)?.name ?? t('ungrouped') : t('ungrouped')]));
-    }
-    ctx.render();
+  const opt = (gid: string | null, name: string): string => {
+    const active = (task.gid ?? null) === gid;
+    return `<button type="button" class="g-opt${active ? ' active' : ''}" data-gid="${esc(gid ?? '')}">` +
+      `<span class="g-opt-check">${ICON.check}</span><span class="g-opt-name">${esc(name)}</span></button>`;
   };
-  select.onchange = () => { void finish(true); };
-  select.onblur = () => { void finish(false); };
-  select.onkeydown = (e) => {
-    if (e.key === 'Escape') { e.preventDefault(); void finish(false); }
+  const menu = document.createElement('div');
+  menu.className = 'g-menu';
+  menu.innerHTML = opt(null, t('pickerUngrouped')) + ctx.repo.groups.map((g) => opt(g.id, g.name)).join('');
+  document.body.append(menu);
+
+  // 锚到标签正下方；视口下半且放不下时翻到上方，左右不越界
+  const rect = btn.getBoundingClientRect();
+  if (!rect.width && !rect.height) { menu.remove(); return; } // 标签刚被重渲染移除（极端时序），放弃弹窗
+  const h = menu.offsetHeight;
+  const below = rect.bottom + 6 + h <= window.innerHeight || rect.bottom < window.innerHeight / 2;
+  menu.style.top = `${below ? rect.bottom + 6 : Math.max(8, rect.top - 6 - h)}px`;
+  menu.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - menu.offsetWidth - 8))}px`;
+
+  gMenu = menu;
+  gMenuBtn = btn;
+  ctx.editing = true;
+
+  menu.onclick = async (e) => {
+    const optBtn = (e.target as HTMLElement).closest('.g-opt') as HTMLElement | null;
+    if (!optBtn) return;
+    const gid = optBtn.dataset.gid || null;
+    closeGroupMenu();
+    if ((task.gid ?? null) === gid) return; // 选回原分组：不保存也不提示
+    setTaskGroup(ctx.repo, id, gid);
+    await persistRepo(ctx.repo);
+    ctx.render();
+    ctx.toast(t('toastMoved', [gid ? ctx.repo.groups.find((g) => g.id === gid)?.name ?? t('ungrouped') : t('ungrouped')]));
+  };
+
+  // 点菜单与标签以外的地方收起；document 级 click 在冒泡末端，所以开菜单的那次点击不会把自己关掉
+  const onDocClick = (e: MouseEvent): void => {
+    const target = e.target as Node | null;
+    if (target && (menu.contains(target) || btn.contains(target))) return;
+    closeGroupMenu();
+  };
+  const onKey = (e: KeyboardEvent): void => {
+    if (e.key !== 'Escape') return;
+    e.stopPropagation();
+    closeGroupMenu();
+  };
+  const onMove = (): void => closeGroupMenu(); // 页面/列表一滚，fixed 定位就脱离锚点，干脆收起
+  document.addEventListener('click', onDocClick);
+  document.addEventListener('keydown', onKey, true);
+  window.addEventListener('scroll', onMove, true);
+  window.addEventListener('resize', onMove);
+  gMenuTeardown = () => {
+    ctx.editing = false;
+    document.removeEventListener('click', onDocClick);
+    document.removeEventListener('keydown', onKey, true);
+    window.removeEventListener('scroll', onMove, true);
+    window.removeEventListener('resize', onMove);
   };
 }
 
@@ -150,10 +208,11 @@ function renderTaskList(ctx: AppContext): void {
   listEl.innerHTML = html;
 
   listEl.ondragstart = (e) => {
+    closeGroupMenu(); // 菜单开着时开始拖拽：fixed 菜单会脱离锚点，先收起
     const row = (e.target as HTMLElement).closest('.task') as HTMLElement | null;
     if (!row?.dataset.id) return;
     // 正在行内编辑的那一行不给拖：拖完会重渲染，未保存的输入就丢了
-    if (row.querySelector('input')) return;
+    if (row.querySelector('input, textarea')) return;
     dragId = row.dataset.id;
     row.classList.add('dragging');
     if (e.dataTransfer) {
@@ -259,7 +318,7 @@ function renderTaskList(ctx: AppContext): void {
     } else if (act === 'rename') {
       inlineEdit(ctx, row);
     } else if (act === 'group') {
-      inlineGroupSelect(ctx, row);
+      openGroupMenu(ctx, btn);
     }
   };
 

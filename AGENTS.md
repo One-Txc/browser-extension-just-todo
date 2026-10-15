@@ -5,9 +5,11 @@
 ## 文档
 设计文档： docs/设计文档.md
 
-## 提交门
+## 约定
+- 代码更新完执行一下`npm run build`更新output
+- 减少无关的测试，只专注于当前做的功能。
 
-`npm run check`（= `npm run typecheck && npm run test && npm run build:all`）必须全绿。改动文案后再跑 `npm run check:locales`。
+## 提交门
 
 ## 国际化规则
 

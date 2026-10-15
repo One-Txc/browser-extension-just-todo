@@ -65,5 +65,7 @@
   "groupTip": { "message": "Double-click to rename. Deleting a group moves active tasks to No group; archived records keep their original group name.", "description": "Group modal hint" },
   "limitReached": { "message": "Limit reached ($1). Complete or archive some tasks first.", "description": "Shown when active limit is exceeded, $1=limit" },
   "toastRestored": { "message": "Restored to to-do", "description": "Restore archived toast" },
-  "toastArchived": { "message": "Archived", "description": "Archive toast" }
+  "toastArchived": { "message": "Archived", "description": "Archive toast" },
+  "groupTagHint": { "message": "Click to change group", "description": "Task row group tag tooltip: click to change the task's group" },
+  "toastMoved": { "message": "Moved to「$1」", "description": "Toast after moving a task to another group, $1=group name" }
 }

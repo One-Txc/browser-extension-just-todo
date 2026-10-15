@@ -33,7 +33,7 @@ TARGETS = {
     'firefox': 'output/MV2',
 }
 
-OUT_DIR = Path('dist')
+OUT_DIR = Path('output/dist')
 NAME_PREFIX = 'todo-just'
 
 # 正常情况下不该出现在产物里的东西，出现就说明构建流程有问题，直接拦下。

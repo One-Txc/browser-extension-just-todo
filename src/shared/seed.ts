@@ -27,11 +27,12 @@ export function buildSeedRepo(): Repo {
       { id: 'seed_t4', title: '按住任务文字右侧的空白处拖动，可以调整顺序', done: false, gid: guide, createdAt: ago(47), completedAt: null, order: 3 },
       { id: 'seed_t5', title: '在上面的输入框输入文字，按回车就能添加新任务', done: false, gid: guide, createdAt: ago(46), completedAt: null, order: 4 },
       { id: 'seed_t6', title: '点右上角的齿轮按钮打开设置，可以更换主题和语言', done: false, gid: guide, createdAt: ago(45), completedAt: null, order: 5 },
-      { id: 'seed_t7', title: '整理浏览器书签', done: false, gid: daily, createdAt: ago(40), completedAt: null, order: 6 },
-      { id: 'seed_t8', title: '回复上周没来得及看的邮件', done: false, gid: daily, createdAt: ago(39), completedAt: null, order: 7 },
+      { id: 'seed_t7', title: '按 Ctrl+T 打开新标签页试试 —— 新标签页已被这份清单接管，可在设置「接管空白标签页」中开启', done: false, gid: guide, createdAt: ago(44), completedAt: null, order: 6 },
+      { id: 'seed_t8', title: '整理浏览器书签', done: false, gid: daily, createdAt: ago(40), completedAt: null, order: 7 },
+      { id: 'seed_t9', title: '回复上周没来得及看的邮件', done: false, gid: daily, createdAt: ago(39), completedAt: null, order: 8 },
       // 已完成任务：order 0 在最上面（done 列表按 order 升序，与「最新完成在前」一致）
-      { id: 'seed_t9', title: '这就是完成后的样子：文字置灰并显示删除线', done: true, gid: guide, createdAt: ago(38), completedAt: ago(30), order: 0 },
-      { id: 'seed_t10', title: '再点一次圆圈恢复为待办，或点右侧的归档按钮收进归档区', done: true, gid: guide, createdAt: ago(37), completedAt: ago(29), order: 1 },
+      { id: 'seed_t10', title: '这就是完成后的样子：文字置灰并显示删除线', done: true, gid: guide, createdAt: ago(38), completedAt: ago(30), order: 0 },
+      { id: 'seed_t11', title: '再点一次圆圈恢复为待办，或点右侧的归档按钮收进归档区', done: true, gid: guide, createdAt: ago(37), completedAt: ago(29), order: 1 },
     ],
     // archivedAt 越大越靠前显示：第一条演示文案排在归档区最上面
     archived: [

@@ -65,5 +65,7 @@
   "groupTip": { "message": "双击分组名可重命名；删除分组后，活跃任务变为「未分组」，归档记录保留原分组名。", "description": "分组弹层说明" },
   "limitReached": { "message": "已达上限（$1），请先完成或归档任务", "description": "新增超过活跃上限时的提示，$1=上限" },
   "toastRestored": { "message": "已恢复为待办", "description": "恢复归档提示" },
-  "toastArchived": { "message": "已归档", "description": "归档提示" }
+  "toastArchived": { "message": "已归档", "description": "归档提示" },
+  "groupTagHint": { "message": "点击更改分组", "description": "任务行分组标签提示：点击可改任务所属分组" },
+  "toastMoved": { "message": "已移动到「$1」", "description": "任务改分组后的提示，$1=分组名" }
 }
