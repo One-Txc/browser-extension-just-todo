@@ -15,7 +15,7 @@ import type { UILocale } from './i18n.ts';
  * 其余一律给英文示例。
  */
 export function buildSeedRepo(locale: UILocale): Repo {
-  return locale === 'zh_CN' ? buildEnSeedRepo() : buildEnSeedRepo();
+  return locale === 'zh_CN' ? buildCnSeedRepo() : buildEnSeedRepo();
 }
 
 function buildCnSeedRepo(): Repo {
