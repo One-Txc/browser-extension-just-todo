@@ -1,11 +1,10 @@
 {
   "name": "todo-just",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/test.mjs",
     "build": "node scripts/build.mjs",
     "build:firefox": "node scripts/build.mjs --target=firefox",
     "build:all": "npm run build && npm run build:firefox",

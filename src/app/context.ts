@@ -2,6 +2,7 @@ import type { Repo } from '../shared/store.ts';
 import type { TodoSettings } from '../shared/settings.ts';
 import { loadRepo, persistRepo, hasRepoKey } from '../shared/store.ts';
 import { buildSeedRepo } from '../shared/seed.ts';
+import { setLocale, getResolvedLocale } from '../shared/i18n.ts';
 import { loadSettings, saveSettings } from '../shared/settings.ts';
 import { loadUiState, saveUiState, reconcileUiState } from '../shared/ui-state.ts';
 
@@ -83,10 +84,13 @@ export async function createContext(root: HTMLElement): Promise<AppContext> {
     },
   };
   await ctx.reload();
+  // 示例数据的语言跟随「实际生效的语言」（手动选定的优先，否则看浏览器），
+  // 所以先把设置里的 locale 交给 i18n 再解析；mountApp 里还会再设一次，这里重复设置无害
+  setLocale(ctx.settings.locale);
   // 首次安装（storage 里还没有数据键）时播种示例数据，打开就能看到功能演示；
   // 之后即使把任务全删光也不再播种，避免打扰已上手的老用户
   if (!(await hasRepoKey())) {
-    ctx.repo = buildSeedRepo();
+    ctx.repo = buildSeedRepo(getResolvedLocale());
     await persistRepo(ctx.repo);
   }
   // 界面状态只在首次进入时读一次：跨标签页同步（storage.onChanged）不该把当前 Tab 拽走

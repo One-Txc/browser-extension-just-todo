@@ -458,7 +458,7 @@ body {
 
 .mask {
   position: fixed; inset: 0; background: var(--mask-bg); backdrop-filter: blur(2px);
-  display: none; align-items: flex-start; justify-content: center; padding-top: 120px; z-index: 20;
+  display: none; align-items: flex-start; justify-content: center; padding-top: 20px; z-index: 20;
 }
 .mask.show { display: flex }
 .modal { background: var(--surface); border-radius: 18px; box-shadow: var(--modal-shadow); width: 430px; max-width: 92vw; padding: 24px; animation: pop .18s ease }

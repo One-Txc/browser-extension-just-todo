@@ -42,18 +42,17 @@ npm run build:all      # 产出 output/MV3（Chrome/Edge）与 output/MV2（Fire
 
 ## 开发
 
-| 命令 | 说明 |
-| --- | --- |
-| `npm run build` | 构建 Chrome/Edge（MV3）产物到 `output/MV3` |
-| `npm run build:firefox` | 构建 Firefox（MV2）产物到 `output/MV2` |
-| `npm run build:all` | 依次构建两个目标 |
-| `npm run watch` | MV3 监听重建（开发时配合 `chrome://extensions` 刷新） |
-| `npm run preview` | 生成主题预览页 `previews/theme-preview.html`（真实 CSS/骨架 + 主题切换条） |
-| `npm run typecheck` | TypeScript 类型检查 |
-| `npm test` | 运行测试（node:test + jsdom） |
-| `npm run check` | 提交门：类型 + 测试 + 双构建 |
-| `npm run check:locales` | 校验语言包（以 zh_CN 为基准） |
-| `npm run package` | 构建并打包为 `dist/todo-just-<版本>-MV3.zip` 与 `-MV2.zip` |
+| 命令 | 说明                                                       |
+| --- |----------------------------------------------------------|
+| `npm run build` | 构建 Chrome/Edge（MV3）产物到 `output/MV3`                      |
+| `npm run build:firefox` | 构建 Firefox（MV2）产物到 `output/MV2`                          |
+| `npm run build:all` | 依次构建两个目标                                                 |
+| `npm run watch` | MV3 监听重建（开发时配合 `chrome://extensions` 刷新）                 |
+| `npm run typecheck` | TypeScript 类型检查                                          |
+| `npm test` | 运行测试（node:test + jsdom）                                  |
+| `npm run check` | 提交门：类型 + 测试 + 双构建                                        |
+| `npm run check:locales` | 校验语言包（以 zh_CN 为基准）                                       |
+| `npm run package` | 构建并打包为 `output/dist/todo-just-<版本>-MV3.zip` 与 `-MV2.zip` |
 
 技术栈：TypeScript（strict）+ esbuild 双目标打包 + 原生 DOM，无框架。
 
